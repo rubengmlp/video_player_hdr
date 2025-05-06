@@ -3,8 +3,8 @@
 // found in the LICENSE file.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:video_player/src/closed_caption_file.dart';
-import 'package:video_player/video_player.dart';
+import 'package:video_player_hdr/src/closed_caption_file.dart';
+import 'package:video_player_hdr/video_player.dart';
 
 void main() {
   group('Parse VTT file', () {

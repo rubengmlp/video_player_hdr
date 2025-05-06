@@ -11,7 +11,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:video_player/video_player.dart';
+import 'package:video_player_hdr/video_player_hdr.dart';
 
 const Duration _playDuration = Duration(seconds: 1);
 
@@ -34,12 +34,12 @@ String getUrlForAssetAsNetworkSource(String assetKey) {
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  late VideoPlayerController controller;
+  late HdrVideoPlayerController controller;
   tearDown(() async => controller.dispose());
 
   group('asset videos', () {
     setUp(() {
-      controller = VideoPlayerController.asset(_videoAssetKey);
+      controller = HdrVideoPlayerController.asset(_videoAssetKey);
     });
 
     testWidgets('can be initialized', (WidgetTester tester) async {
@@ -56,8 +56,8 @@ void main() {
     testWidgets(
       'live stream duration != 0',
       (WidgetTester tester) async {
-        final VideoPlayerController networkController =
-            VideoPlayerController.networkUrl(
+        final HdrVideoPlayerController networkController =
+            HdrVideoPlayerController.networkUrl(
           Uri.parse(
               'https://flutter.github.io/assets-for-api-docs/assets/videos/hls/bee.m3u8'),
         );
@@ -216,7 +216,7 @@ void main() {
                 if (snapshot.data ?? false) {
                   return AspectRatio(
                     aspectRatio: controller.value.aspectRatio,
-                    child: VideoPlayer(controller),
+                    child: HdrVideoPlayer(controller),
                   );
                 } else {
                   return const Text('waiting for video to load');
@@ -246,7 +246,7 @@ void main() {
       final File file = File('$tempDir/$filename');
       await file.writeAsBytes(bytes.buffer.asInt8List());
 
-      controller = VideoPlayerController.file(file);
+      controller = HdrVideoPlayerController.file(file);
     });
 
     testWidgets('test video player using static file() method as constructor',
@@ -263,7 +263,7 @@ void main() {
 
   group('network videos', () {
     setUp(() {
-      controller = VideoPlayerController.networkUrl(
+      controller = HdrVideoPlayerController.networkUrl(
           Uri.parse(getUrlForAssetAsNetworkSource(_videoAssetKey)));
     });
 
@@ -316,7 +316,7 @@ void main() {
   // but could be removed in the future.
   group('asset audios', () {
     setUp(() {
-      controller = VideoPlayerController.asset('assets/Audio.mp3');
+      controller = HdrVideoPlayerController.asset('assets/Audio.mp3');
     });
 
     testWidgets('can be initialized', (WidgetTester tester) async {

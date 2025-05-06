@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  video_player:
+  video_player_hdr:
     # When depending on this package from a real application you should use:
     #   video_player: ^x.y.z
     # See https://dart.dev/tools/pub/dependencies#version-constraints

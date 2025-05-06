@@ -19,7 +19,8 @@ export 'package:video_player_platform_interface/video_player_platform_interface.
         VideoFormat,
         VideoPlayerOptions,
         VideoPlayerWebOptions,
-        VideoPlayerWebOptionsControls;
+        VideoPlayerWebOptionsControls,
+        VideoViewType;
 
 export 'src/closed_caption_file.dart';
 
@@ -37,12 +38,12 @@ VideoPlayerPlatform get _videoPlayerPlatform {
 }
 
 /// The duration, current position, buffering state, error state and settings
-/// of a [VideoPlayerController].
+/// of a [HdrVideoPlayerController].
 @immutable
-class VideoPlayerValue {
+class HdrVideoPlayerValue {
   /// Constructs a video with the given values. Only [duration] is required. The
   /// rest will initialize with default values when unset.
-  const VideoPlayerValue({
+  const HdrVideoPlayerValue({
     required this.duration,
     this.size = Size.zero,
     this.position = Duration.zero,
@@ -61,11 +62,11 @@ class VideoPlayerValue {
   });
 
   /// Returns an instance for a video that hasn't been loaded.
-  const VideoPlayerValue.uninitialized()
+  const HdrVideoPlayerValue.uninitialized()
       : this(duration: Duration.zero, isInitialized: false);
 
   /// Returns an instance with the given [errorDescription].
-  const VideoPlayerValue.erroneous(String errorDescription)
+  const HdrVideoPlayerValue.erroneous(String errorDescription)
       : this(
             duration: Duration.zero,
             isInitialized: false,
@@ -155,7 +156,7 @@ class VideoPlayerValue {
 
   /// Returns a new instance that has the same values as this current instance,
   /// except for any overrides passed in as arguments to [copyWith].
-  VideoPlayerValue copyWith({
+  HdrVideoPlayerValue copyWith({
     Duration? duration,
     Size? size,
     Duration? position,
@@ -172,7 +173,7 @@ class VideoPlayerValue {
     String? errorDescription = _defaultErrorDescription,
     bool? isCompleted,
   }) {
-    return VideoPlayerValue(
+    return HdrVideoPlayerValue(
       duration: duration ?? this.duration,
       size: size ?? this.size,
       position: position ?? this.position,
@@ -195,7 +196,7 @@ class VideoPlayerValue {
 
   @override
   String toString() {
-    return '${objectRuntimeType(this, 'VideoPlayerValue')}('
+    return '${objectRuntimeType(this, 'HdrVideoPlayerValue')}('
         'duration: $duration, '
         'size: $size, '
         'position: $position, '
@@ -215,7 +216,7 @@ class VideoPlayerValue {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is VideoPlayerValue &&
+      other is HdrVideoPlayerValue &&
           runtimeType == other.runtimeType &&
           duration == other.duration &&
           position == other.position &&
@@ -263,13 +264,13 @@ class VideoPlayerValue {
 /// To reclaim the resources used by the player call [dispose].
 ///
 /// After [dispose] all further calls are ignored.
-class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
-  /// Constructs a [VideoPlayerController] playing a video from an asset.
+class HdrVideoPlayerController extends ValueNotifier<HdrVideoPlayerValue> {
+  /// Constructs a [HdrVideoPlayerController] playing a video from an asset.
   ///
   /// The name of the asset is given by the [dataSource] argument and must not be
   /// null. The [package] argument must be non-null when the asset comes from a
   /// package and null otherwise.
-  VideoPlayerController.asset(this.dataSource,
+  HdrVideoPlayerController.asset(this.dataSource,
       {this.package,
       Future<ClosedCaptionFile>? closedCaptionFile,
       this.videoPlayerOptions})
@@ -277,9 +278,9 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         dataSourceType = DataSourceType.asset,
         formatHint = null,
         httpHeaders = const <String, String>{},
-        super(const VideoPlayerValue(duration: Duration.zero));
+        super(const HdrVideoPlayerValue(duration: Duration.zero));
 
-  /// Constructs a [VideoPlayerController] playing a network video.
+  /// Constructs a [HdrVideoPlayerController] playing a network video.
   ///
   /// The URI for the video is given by the [dataSource] argument.
   ///
@@ -289,7 +290,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// [httpHeaders] option allows to specify HTTP headers
   /// for the request to the [dataSource].
   @Deprecated('Use VideoPlayerController.networkUrl instead')
-  VideoPlayerController.network(
+  HdrVideoPlayerController.network(
     this.dataSource, {
     this.formatHint,
     Future<ClosedCaptionFile>? closedCaptionFile,
@@ -298,9 +299,9 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   })  : _closedCaptionFileFuture = closedCaptionFile,
         dataSourceType = DataSourceType.network,
         package = null,
-        super(const VideoPlayerValue(duration: Duration.zero));
+        super(const HdrVideoPlayerValue(duration: Duration.zero));
 
-  /// Constructs a [VideoPlayerController] playing a network video.
+  /// Constructs a [HdrVideoPlayerController] playing a network video.
   ///
   /// The URI for the video is given by the [dataSource] argument.
   ///
@@ -309,7 +310,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   ///
   /// [httpHeaders] option allows to specify HTTP headers
   /// for the request to the [dataSource].
-  VideoPlayerController.networkUrl(
+  HdrVideoPlayerController.networkUrl(
     Uri url, {
     this.formatHint,
     Future<ClosedCaptionFile>? closedCaptionFile,
@@ -319,13 +320,13 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         dataSource = url.toString(),
         dataSourceType = DataSourceType.network,
         package = null,
-        super(const VideoPlayerValue(duration: Duration.zero));
+        super(const HdrVideoPlayerValue(duration: Duration.zero));
 
-  /// Constructs a [VideoPlayerController] playing a video from a file.
+  /// Constructs a [HdrVideoPlayerController] playing a video from a file.
   ///
   /// This will load the file from a file:// URI constructed from [file]'s path.
   /// [httpHeaders] option allows to specify HTTP headers, mainly used for hls files like (m3u8).
-  VideoPlayerController.file(File file,
+  HdrVideoPlayerController.file(File file,
       {Future<ClosedCaptionFile>? closedCaptionFile,
       this.videoPlayerOptions,
       this.httpHeaders = const <String, String>{}})
@@ -334,13 +335,13 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         dataSourceType = DataSourceType.file,
         package = null,
         formatHint = null,
-        super(const VideoPlayerValue(duration: Duration.zero));
+        super(const HdrVideoPlayerValue(duration: Duration.zero));
 
-  /// Constructs a [VideoPlayerController] playing a video from a contentUri.
+  /// Constructs a [HdrVideoPlayerController] playing a video from a contentUri.
   ///
   /// This will load the video from the input content-URI.
   /// This is supported on Android only.
-  VideoPlayerController.contentUri(Uri contentUri,
+  HdrVideoPlayerController.contentUri(Uri contentUri,
       {Future<ClosedCaptionFile>? closedCaptionFile, this.videoPlayerOptions})
       : assert(defaultTargetPlatform == TargetPlatform.android,
             'VideoPlayerController.contentUri is only supported on Android.'),
@@ -350,7 +351,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         package = null,
         formatHint = null,
         httpHeaders = const <String, String>{},
-        super(const VideoPlayerValue(duration: Duration.zero));
+        super(const HdrVideoPlayerValue(duration: Duration.zero));
 
   /// The URI to the video file. This will be in different formats depending on
   /// the [DataSourceType] of the original video.
@@ -365,7 +366,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// detection with whatever is set here.
   final VideoFormat? formatHint;
 
-  /// Describes the type of data source this [VideoPlayerController]
+  /// Describes the type of data source this [HdrVideoPlayerController]
   /// is constructed with.
   final DataSourceType dataSourceType;
 
@@ -394,7 +395,9 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   int get textureId => _textureId;
 
   /// Attempts to open the given [dataSource] and load metadata about the video.
-  Future<void> initialize() async {
+  Future<void> initialize({
+      VideoViewType viewType = VideoViewType.platformView,
+    }) async {
     final bool allowBackgroundPlayback =
         videoPlayerOptions?.allowBackgroundPlayback ?? false;
     if (!allowBackgroundPlayback) {
@@ -436,8 +439,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           .setMixWithOthers(videoPlayerOptions!.mixWithOthers);
     }
 
-    _textureId = (await _videoPlayerPlatform.create(dataSourceDescription)) ??
-        kUninitializedTextureId;
+    _textureId = (await _videoPlayerPlatform.createWithOptions(VideoCreationOptions(dataSource: dataSourceDescription, viewType: viewType))) ?? kUninitializedTextureId;
     _creatingCompleter!.complete(null);
     final Completer<void> initializingCompleter = Completer<void>();
 
@@ -509,7 +511,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
 
     void errorListener(Object obj) {
       final PlatformException e = obj as PlatformException;
-      value = VideoPlayerValue.erroneous(e.message!);
+      value = HdrVideoPlayerValue.erroneous(e.message!);
       _timer?.cancel();
       if (!initializingCompleter.isCompleted) {
         initializingCompleter.completeError(obj);
@@ -558,7 +560,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   }
 
   /// Sets whether or not the video should loop after playing once. See also
-  /// [VideoPlayerValue.isLooping].
+  /// [HdrVideoPlayerValue.isLooping].
   Future<void> setLooping(bool looping) async {
     value = value.copyWith(isLooping: looping);
     await _applyLooping();
@@ -794,7 +796,7 @@ class _VideoAppLifeCycleObserver extends Object with WidgetsBindingObserver {
   _VideoAppLifeCycleObserver(this._controller);
 
   bool _wasPlayingBeforePause = false;
-  final VideoPlayerController _controller;
+  final HdrVideoPlayerController _controller;
 
   void initialize() {
     WidgetsBinding.instance.addObserver(this);
@@ -818,20 +820,20 @@ class _VideoAppLifeCycleObserver extends Object with WidgetsBindingObserver {
 }
 
 /// Widget that displays the video controlled by [controller].
-class VideoPlayer extends StatefulWidget {
+class HdrVideoPlayer extends StatefulWidget {
   /// Uses the given [controller] for all video rendered in this widget.
-  const VideoPlayer(this.controller, {super.key});
+  const HdrVideoPlayer(this.controller, {super.key});
 
-  /// The [VideoPlayerController] responsible for the video being rendered in
+  /// The [HdrVideoPlayerController] responsible for the video being rendered in
   /// this widget.
-  final VideoPlayerController controller;
+  final HdrVideoPlayerController controller;
 
   @override
-  State<VideoPlayer> createState() => _VideoPlayerState();
+  State<HdrVideoPlayer> createState() => _HdrVideoPlayerState();
 }
 
-class _VideoPlayerState extends State<VideoPlayer> {
-  _VideoPlayerState() {
+class _HdrVideoPlayerState extends State<HdrVideoPlayer> {
+  _HdrVideoPlayerState() {
     _listener = () {
       final int newTextureId = widget.controller.textureId;
       if (newTextureId != _textureId) {
@@ -856,7 +858,7 @@ class _VideoPlayerState extends State<VideoPlayer> {
   }
 
   @override
-  void didUpdateWidget(VideoPlayer oldWidget) {
+  void didUpdateWidget(HdrVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     oldWidget.controller.removeListener(_listener);
     _textureId = widget.controller.textureId;
@@ -871,7 +873,7 @@ class _VideoPlayerState extends State<VideoPlayer> {
 
   @override
   Widget build(BuildContext context) {
-    return _textureId == VideoPlayerController.kUninitializedTextureId
+    return _textureId == HdrVideoPlayerController.kUninitializedTextureId
         ? Container()
         : _VideoPlayerWithRotation(
             rotation: widget.controller.value.rotationCorrection,
@@ -939,11 +941,11 @@ class VideoProgressColors {
   final Color backgroundColor;
 }
 
-/// A scrubber to control [VideoPlayerController]s
+/// A scrubber to control [HdrVideoPlayerController]s
 class VideoScrubber extends StatefulWidget {
   /// Create a [VideoScrubber] handler with the given [child].
   ///
-  /// [controller] is the [VideoPlayerController] that will be controlled by
+  /// [controller] is the [HdrVideoPlayerController] that will be controlled by
   /// this scrubber.
   const VideoScrubber({
     super.key,
@@ -954,8 +956,8 @@ class VideoScrubber extends StatefulWidget {
   /// The widget that will be displayed inside the gesture detector.
   final Widget child;
 
-  /// The [VideoPlayerController] that will be controlled by this scrubber.
-  final VideoPlayerController controller;
+  /// The [HdrVideoPlayerController] that will be controlled by this scrubber.
+  final HdrVideoPlayerController controller;
 
   @override
   State<VideoScrubber> createState() => _VideoScrubberState();
@@ -964,7 +966,7 @@ class VideoScrubber extends StatefulWidget {
 class _VideoScrubberState extends State<VideoScrubber> {
   bool _controllerWasPlaying = false;
 
-  VideoPlayerController get controller => widget.controller;
+  HdrVideoPlayerController get controller => widget.controller;
 
   @override
   Widget build(BuildContext context) {
@@ -1032,9 +1034,9 @@ class VideoProgressIndicator extends StatefulWidget {
     this.padding = const EdgeInsets.only(top: 5.0),
   });
 
-  /// The [VideoPlayerController] that actually associates a video with this
+  /// The [HdrVideoPlayerController] that actually associates a video with this
   /// widget.
-  final VideoPlayerController controller;
+  final HdrVideoPlayerController controller;
 
   /// The default colors used throughout the indicator.
   ///
@@ -1069,7 +1071,7 @@ class _VideoProgressIndicatorState extends State<VideoProgressIndicator> {
 
   late VoidCallback listener;
 
-  VideoPlayerController get controller => widget.controller;
+  HdrVideoPlayerController get controller => widget.controller;
 
   VideoProgressColors get colors => widget.colors;
 
@@ -1144,7 +1146,7 @@ class _VideoProgressIndicatorState extends State<VideoProgressIndicator> {
 /// caption.
 ///
 /// Note: in order to have closed captions, you need to specify a
-/// [VideoPlayerController.closedCaptionFile].
+/// [HdrVideoPlayerController.closedCaptionFile].
 ///
 /// Usage:
 ///
@@ -1156,7 +1158,7 @@ class _VideoProgressIndicatorState extends State<VideoProgressIndicator> {
 /// ```
 class ClosedCaption extends StatelessWidget {
   /// Creates a a new closed caption, designed to be used with
-  /// [VideoPlayerValue.caption].
+  /// [HdrVideoPlayerValue.caption].
   ///
   /// If [text] is null or empty, nothing will be displayed.
   const ClosedCaption({super.key, this.text, this.textStyle});

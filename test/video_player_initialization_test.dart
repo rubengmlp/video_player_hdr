@@ -4,7 +4,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:video_player/video_player.dart';
+import 'package:video_player_hdr/video_player.dart';
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
 
 import 'video_player_test.dart' show FakeVideoPlayerPlatform;
@@ -20,7 +20,7 @@ void main() {
   });
 
   test('plugin initialized', () async {
-    final VideoPlayerController controller = VideoPlayerController.networkUrl(
+    final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
       Uri.parse('https://127.0.0.1'),
     );
     await controller.initialize();
@@ -34,7 +34,7 @@ void main() {
       controls: VideoPlayerWebOptionsControls.enabled(),
     );
 
-    final VideoPlayerController controller = VideoPlayerController.networkUrl(
+    final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
       Uri.parse('https://127.0.0.1'),
       videoPlayerOptions: VideoPlayerOptions(
         webOptions: expected,

@@ -9,7 +9,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
+import 'package:video_player_hdr/video_player_hdr.dart';
 
 void main() {
   runApp(
@@ -155,12 +155,12 @@ class _ButterFlyAssetVideo extends StatefulWidget {
 }
 
 class _ButterFlyAssetVideoState extends State<_ButterFlyAssetVideo> {
-  late VideoPlayerController _controller;
+  late HdrVideoPlayerController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.asset('assets/Butterfly-209.mp4');
+    _controller = HdrVideoPlayerController.asset('assets/Butterfly-209.mp4');
 
     _controller.addListener(() {
       setState(() {});
@@ -192,7 +192,7 @@ class _ButterFlyAssetVideoState extends State<_ButterFlyAssetVideo> {
               child: Stack(
                 alignment: Alignment.bottomCenter,
                 children: <Widget>[
-                  VideoPlayer(_controller),
+                  HdrVideoPlayer(_controller),
                   _ControlsOverlay(controller: _controller),
                   VideoProgressIndicator(_controller, allowScrubbing: true),
                 ],
@@ -211,7 +211,7 @@ class _BumbleBeeRemoteVideo extends StatefulWidget {
 }
 
 class _BumbleBeeRemoteVideoState extends State<_BumbleBeeRemoteVideo> {
-  late VideoPlayerController _controller;
+  late HdrVideoPlayerController _controller;
 
   Future<ClosedCaptionFile> _loadCaptions() async {
     final String fileContents = await DefaultAssetBundle.of(context)
@@ -223,7 +223,7 @@ class _BumbleBeeRemoteVideoState extends State<_BumbleBeeRemoteVideo> {
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.networkUrl(
+    _controller = HdrVideoPlayerController.networkUrl(
       Uri.parse(
           'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4'),
       closedCaptionFile: _loadCaptions(),
@@ -257,7 +257,7 @@ class _BumbleBeeRemoteVideoState extends State<_BumbleBeeRemoteVideo> {
               child: Stack(
                 alignment: Alignment.bottomCenter,
                 children: <Widget>[
-                  VideoPlayer(_controller),
+                  HdrVideoPlayer(_controller),
                   ClosedCaption(text: _controller.value.caption.text),
                   _ControlsOverlay(controller: _controller),
                   VideoProgressIndicator(_controller, allowScrubbing: true),
@@ -296,7 +296,7 @@ class _ControlsOverlay extends StatelessWidget {
     10.0,
   ];
 
-  final VideoPlayerController controller;
+  final HdrVideoPlayerController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -393,7 +393,7 @@ class _PlayerVideoAndPopPage extends StatefulWidget {
 }
 
 class _PlayerVideoAndPopPageState extends State<_PlayerVideoAndPopPage> {
-  late VideoPlayerController _videoPlayerController;
+  late HdrVideoPlayerController _videoPlayerController;
   bool startedPlaying = false;
 
   @override
@@ -401,7 +401,7 @@ class _PlayerVideoAndPopPageState extends State<_PlayerVideoAndPopPage> {
     super.initState();
 
     _videoPlayerController =
-        VideoPlayerController.asset('assets/Butterfly-209.mp4');
+        HdrVideoPlayerController.asset('assets/Butterfly-209.mp4');
     _videoPlayerController.addListener(() {
       if (startedPlaying && !_videoPlayerController.value.isPlaying) {
         Navigator.pop(context);
@@ -432,7 +432,7 @@ class _PlayerVideoAndPopPageState extends State<_PlayerVideoAndPopPage> {
             if (snapshot.data ?? false) {
               return AspectRatio(
                 aspectRatio: _videoPlayerController.value.aspectRatio,
-                child: VideoPlayer(_videoPlayerController),
+                child: HdrVideoPlayer(_videoPlayerController),
               );
             } else {
               return const Text('waiting for video to load');

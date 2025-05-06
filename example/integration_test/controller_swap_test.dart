@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:video_player/video_player.dart';
+import 'package:video_player_hdr/video_player_hdr.dart';
 
 const Duration _playDuration = Duration(seconds: 1);
 
@@ -21,10 +21,10 @@ void main() {
       const String videoAssetKey =
           kIsWeb ? 'assets/Butterfly-209.webm' : 'assets/Butterfly-209.mp4';
 
-      final VideoPlayerController controller = VideoPlayerController.asset(
+      final HdrVideoPlayerController controller = HdrVideoPlayerController.asset(
         videoAssetKey,
       );
-      final VideoPlayerController another = VideoPlayerController.asset(
+      final HdrVideoPlayerController another = HdrVideoPlayerController.asset(
         videoAssetKey,
       );
       await controller.initialize();
@@ -83,7 +83,7 @@ void main() {
   );
 }
 
-Widget renderVideoWidget(VideoPlayerController controller) {
+Widget renderVideoWidget(HdrVideoPlayerController controller) {
   return Material(
     child: Directionality(
       textDirection: TextDirection.ltr,
@@ -91,7 +91,7 @@ Widget renderVideoWidget(VideoPlayerController controller) {
         child: AspectRatio(
           key: const Key('same'),
           aspectRatio: controller.value.aspectRatio,
-          child: VideoPlayer(controller),
+          child: HdrVideoPlayer(controller),
         ),
       ),
     ),
