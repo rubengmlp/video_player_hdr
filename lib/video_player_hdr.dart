@@ -24,6 +24,16 @@ export 'package:video_player_platform_interface/video_player_platform_interface.
 
 export 'src/closed_caption_file.dart';
 
+/// Custom error class for video player errors
+class HdrVideoError implements Exception {
+  HdrVideoError(this.message);
+  
+  final String message;
+  
+  @override
+  String toString() => message;
+}
+
 VideoPlayerPlatform? _lastVideoPlayerPlatform;
 
 VideoPlayerPlatform get _videoPlayerPlatform {
@@ -393,6 +403,92 @@ class HdrVideoPlayerController extends ValueNotifier<HdrVideoPlayerValue> {
   /// on the plugin.
   @visibleForTesting
   int get textureId => _textureId;
+
+  static const MethodChannel _hdrChannel = MethodChannel('video_player_hdr/hdr_control');
+  
+  /// Check if the device supports HDR playback
+  Future<bool> isHdrSupported() async {
+    try {
+      final bool isSupported = await _hdrChannel.invokeMethod('isHdrSupported');
+      return isSupported;
+    } on PlatformException catch (e) {
+      throw HdrVideoError(
+        'Failed to check HDR support: ${e.message}',
+      );
+    }
+  }
+
+  /// Get the list of supported HDR formats on this device
+  Future<List<String>> getSupportedHdrFormats() async {
+    try {
+      final List<dynamic> formats = await _hdrChannel.invokeMethod('getSupportedHdrFormats');
+      return formats.cast<String>();
+    } on PlatformException catch (e) {
+      throw HdrVideoError(
+        'Failed to get supported HDR formats: ${e.message}',
+      );
+    }
+  }
+
+  /// Get the color information of the video
+  Future<Map<String, dynamic>> getColorInfo() async {
+    try {
+      final Map<String, dynamic> colorInfo = await _hdrChannel.invokeMethod('getColorInfo');
+      return colorInfo;
+    } on PlatformException catch (e) {
+      throw HdrVideoError(
+        'Failed to get color information: ${e.message}',
+      );
+    }
+  } 
+
+  /// Get the static HDR information of the video
+  Future<Map<String, dynamic>> getHdrStaticInfo() async {
+    try {
+      final Map<String, dynamic> hdrStaticInfo = await _hdrChannel.invokeMethod('getHdrStaticInfo');
+      return hdrStaticInfo;
+    } on PlatformException catch (e) {
+      throw HdrVideoError(
+        'Failed to get HDR static information: ${e.message}',
+      );
+    }
+  }
+
+  /// Set the preferred HDR mode of the video
+  Future<void> setPreferredHdrMode(String mode) async {
+    try {
+      await _hdrChannel.invokeMethod('setPreferredHdrMode', mode);
+    } on PlatformException catch (e) {
+      throw HdrVideoError(
+        'Failed to set preferred HDR mode: ${e.message}',
+      );
+    }
+  }
+
+  /// Get the current HDR mode of the video
+  Future<String> getPreferredHdrMode() async {
+    try {
+      final String mode = await _hdrChannel.invokeMethod('getPreferredHdrMode');
+      return mode;
+    } on PlatformException catch (e) {
+      throw HdrVideoError(
+        'Failed to get preferred HDR mode: ${e.message}',
+      );
+    }
+  }
+
+  /// Set the maximum bitrate of the video
+  Future<void> setMaxBitrate(int bitrate) async {
+    try {
+      await _hdrChannel.invokeMethod('setMaxBitrate', bitrate);
+    } on PlatformException catch (e) {
+      throw HdrVideoError(
+        'Failed to set maximum bitrate: ${e.message}',
+      );
+    }
+  }
+
+
 
   /// Attempts to open the given [dataSource] and load metadata about the video.
   Future<void> initialize({
