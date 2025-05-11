@@ -424,7 +424,7 @@ class HdrVideoPlayerController extends ValueNotifier<HdrVideoPlayerValue> {
   }
 
   /// Get the color information of the video
-  Future<Map<String, dynamic>> getColorInfo() async {
+  Future<Map<String, dynamic>> getVideoColorInfo() async {
     try {
       final Map<String, dynamic> colorInfo = await _hdrChannel.invokeMethod('getColorInfo');
       return colorInfo;

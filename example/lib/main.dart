@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:video_player_hdr/video_player_hdr.dart';
 
 void main() {
   runApp(const MyApp());
@@ -10,58 +11,130 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Video Player HDR Example',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const VideoPlayerHdrExample(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
+class VideoPlayerHdrExample extends StatefulWidget {
+  const VideoPlayerHdrExample({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<VideoPlayerHdrExample> createState() => _VideoPlayerHdrExampleState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
+  late HdrVideoPlayerController _controller;
+  bool _isInitialized = false;
+  bool? _isHdrSupported;
+  List<String>? _supportedHdrFormats;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = HdrVideoPlayerController.asset('assets/videos/01.MOV')
+      ..initialize().then((_) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }).catchError((e) {
+        setState(() {
+          _error = 'Error charging video: $e';
+        });
+      });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _checkHdrSupported() async {
+    try {
+      final result = await _controller.isHdrSupported();
+      setState(() {
+        _isHdrSupported = result;
+      });
+    } catch (e) {
+      setState(() {
+        _isHdrSupported = null;
+        _error = 'Error checking HDR: $e';
+      });
+    }
+  }
+
+  Future<void> _getSupportedHdrFormats() async {
+    try {
+      final result = await _controller.getSupportedHdrFormats();
+      setState(() {
+        _supportedHdrFormats = result;
+      });
+    } catch (e) {
+      setState(() {
+        _supportedHdrFormats = null;
+        _error = 'Error getting HDR formats: $e';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
-        
-        child: Column(
-       
- 
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              'HOLA',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+      appBar: AppBar(title: const Text('Video Player HDR Example')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
+              if (_isInitialized)
+                SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.7,
+                  child: AspectRatio(
+                    aspectRatio: _controller.value.aspectRatio,
+                    child: HdrVideoPlayer(_controller),
+                  ),
+                ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(_controller.value.isPlaying ? Icons.pause : Icons.play_arrow),
+                    onPressed: () {
+                      setState(() {
+                        _controller.value.isPlaying ? _controller.pause() : _controller.play();
+                      });
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _checkHdrSupported,
+                child: const Text('Supports HDR?'),
+              ),
+              if (_isHdrSupported != null) Text('Supports HDR: ${_isHdrSupported! ? "Yes" : "No"}'),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _getSupportedHdrFormats,
+                child: const Text('Get supported HDR formats'),
+              ),
+              if (_supportedHdrFormats != null)
+                Text('Supported HDR formats: ${_supportedHdrFormats!.join(", ")}'),
+            ],
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), 
     );
   }
 }
