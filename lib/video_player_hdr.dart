@@ -27,9 +27,9 @@ export 'src/closed_caption_file.dart';
 /// Custom error class for video player errors
 class HdrVideoError implements Exception {
   HdrVideoError(this.message);
-  
+
   final String message;
-  
+
   @override
   String toString() => message;
 }
@@ -72,15 +72,11 @@ class HdrVideoPlayerValue {
   });
 
   /// Returns an instance for a video that hasn't been loaded.
-  const HdrVideoPlayerValue.uninitialized()
-      : this(duration: Duration.zero, isInitialized: false);
+  const HdrVideoPlayerValue.uninitialized() : this(duration: Duration.zero, isInitialized: false);
 
   /// Returns an instance with the given [errorDescription].
   const HdrVideoPlayerValue.erroneous(String errorDescription)
-      : this(
-            duration: Duration.zero,
-            isInitialized: false,
-            errorDescription: errorDescription);
+      : this(duration: Duration.zero, isInitialized: false, errorDescription: errorDescription);
 
   /// This constant is just to indicate that parameter is not passed to [copyWith]
   /// workaround for this issue https://github.com/dart-lang/language/issues/2009
@@ -197,9 +193,8 @@ class HdrVideoPlayerValue {
       volume: volume ?? this.volume,
       playbackSpeed: playbackSpeed ?? this.playbackSpeed,
       rotationCorrection: rotationCorrection ?? this.rotationCorrection,
-      errorDescription: errorDescription != _defaultErrorDescription
-          ? errorDescription
-          : this.errorDescription,
+      errorDescription:
+          errorDescription != _defaultErrorDescription ? errorDescription : this.errorDescription,
       isCompleted: isCompleted ?? this.isCompleted,
     );
   }
@@ -281,9 +276,7 @@ class HdrVideoPlayerController extends ValueNotifier<HdrVideoPlayerValue> {
   /// null. The [package] argument must be non-null when the asset comes from a
   /// package and null otherwise.
   HdrVideoPlayerController.asset(this.dataSource,
-      {this.package,
-      Future<ClosedCaptionFile>? closedCaptionFile,
-      this.videoPlayerOptions})
+      {this.package, Future<ClosedCaptionFile>? closedCaptionFile, this.videoPlayerOptions})
       : _closedCaptionFileFuture = closedCaptionFile,
         dataSourceType = DataSourceType.asset,
         formatHint = null,
@@ -405,7 +398,7 @@ class HdrVideoPlayerController extends ValueNotifier<HdrVideoPlayerValue> {
   int get textureId => _textureId;
 
   static const MethodChannel _hdrChannel = MethodChannel('video_player_hdr/hdr_control');
-  
+
   /// Check if the device supports HDR playback
   Future<bool> isHdrSupported() async {
     try {
@@ -440,7 +433,7 @@ class HdrVideoPlayerController extends ValueNotifier<HdrVideoPlayerValue> {
         'Failed to get color information: ${e.message}',
       );
     }
-  } 
+  }
 
   /// Get the static HDR information of the video
   Future<Map<String, dynamic>> getHdrStaticInfo() async {
@@ -488,14 +481,11 @@ class HdrVideoPlayerController extends ValueNotifier<HdrVideoPlayerValue> {
     }
   }
 
-
-
   /// Attempts to open the given [dataSource] and load metadata about the video.
   Future<void> initialize({
-      VideoViewType viewType = VideoViewType.platformView,
-    }) async {
-    final bool allowBackgroundPlayback =
-        videoPlayerOptions?.allowBackgroundPlayback ?? false;
+    VideoViewType viewType = VideoViewType.platformView,
+  }) async {
+    final bool allowBackgroundPlayback = videoPlayerOptions?.allowBackgroundPlayback ?? false;
     if (!allowBackgroundPlayback) {
       _lifeCycleObserver = _VideoAppLifeCycleObserver(this);
     }
@@ -531,11 +521,12 @@ class HdrVideoPlayerController extends ValueNotifier<HdrVideoPlayerValue> {
     }
 
     if (videoPlayerOptions?.mixWithOthers != null) {
-      await _videoPlayerPlatform
-          .setMixWithOthers(videoPlayerOptions!.mixWithOthers);
+      await _videoPlayerPlatform.setMixWithOthers(videoPlayerOptions!.mixWithOthers);
     }
 
-    _textureId = (await _videoPlayerPlatform.createWithOptions(VideoCreationOptions(dataSource: dataSourceDescription, viewType: viewType))) ?? kUninitializedTextureId;
+    _textureId = (await _videoPlayerPlatform.createWithOptions(
+            VideoCreationOptions(dataSource: dataSourceDescription, viewType: viewType))) ??
+        kUninitializedTextureId;
     _creatingCompleter!.complete(null);
     final Completer<void> initializingCompleter = Completer<void>();
 
@@ -591,8 +582,7 @@ class HdrVideoPlayerController extends ValueNotifier<HdrVideoPlayerValue> {
           value = value.copyWith(isBuffering: false);
         case VideoEventType.isPlayingStateUpdate:
           if (event.isPlaying ?? false) {
-            value =
-                value.copyWith(isPlaying: event.isPlaying, isCompleted: false);
+            value = value.copyWith(isPlaying: event.isPlaying, isCompleted: false);
           } else {
             value = value.copyWith(isPlaying: event.isPlaying);
           }
@@ -1093,8 +1083,7 @@ class _VideoScrubberState extends State<VideoScrubber> {
         seekToRelativePosition(details.globalPosition);
       },
       onHorizontalDragEnd: (DragEndDetails details) {
-        if (_controllerWasPlaying &&
-            controller.value.position != controller.value.duration) {
+        if (_controllerWasPlaying && controller.value.position != controller.value.duration) {
           controller.play();
         }
       },
