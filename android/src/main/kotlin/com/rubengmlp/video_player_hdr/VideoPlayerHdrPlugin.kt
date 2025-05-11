@@ -29,11 +29,11 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
         when (call.method) {
             "isHdrSupported" -> isHdrSupported(result)
             "getSupportedHdrFormats" -> getSupportedHdrFormats(result)
-            "getColorInfo" -> getColorInfo(result)
-            "getHdrStaticInfo" -> getHdrStaticInfo(result)
-            "setPreferredHdrMode" -> setPreferredHdrMode(call, result)
-            "getPreferredHdrMode" -> getPreferredHdrMode(result)
-            "setMaxBitrate" -> setMaxBitrate(call, result)
+            // "getVideoColorInfo" -> getVideoColorInfo(result)
+            // "getHdrStaticInfo" -> getHdrStaticInfo(result)
+            // "setPreferredHdrMode" -> setPreferredHdrMode(call, result)
+            // "getPreferredHdrMode" -> getPreferredHdrMode(result)
+            // "setMaxBitrate" -> setMaxBitrate(call, result)
             else -> result.notImplemented()
         }
     }
@@ -94,8 +94,4 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
                 result.error("HDR_FORMATS_FAILED", "Failed to get supported HDR formats: ${e.message}", null)
             }
     }
-    
-    
-
-    
 }
