@@ -12,7 +12,8 @@ flutter:
   plugin:
     platforms:
       android:
-        default_package: video_player_android
+        package: com.rubengmlp.video_player_hdr
+        pluginClass: VideoPlayerHdrPlugin
       ios:
         default_package: video_player_avfoundation
       macos:
@@ -24,9 +25,9 @@ dependencies:
   flutter:
     sdk: flutter
   html: ^0.15.0
-  video_player_android: ^2.3.5
-  video_player_avfoundation: ^2.5.6
   video_player_platform_interface: ^6.2.0
+  video_player_avfoundation: ^2.5.6
+  video_player_android: ^2.8.3
   video_player_web: ^2.1.0
 
 dev_dependencies:

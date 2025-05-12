@@ -71,7 +71,7 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
             if (display != null) {
                 val hdrCapabilities = display.hdrCapabilities
                 val supportedHdrTypes = hdrCapabilities.supportedHdrTypes
-                val formats = supportedHdrTypes.mapNotNull { type ->
+                val formats = supportedHdrTypes.toList().mapNotNull { type ->
                     when (type) {
                         Display.HdrCapabilities.HDR_TYPE_DOLBY_VISION -> "dolby_vision"
                         Display.HdrCapabilities.HDR_TYPE_HDR10 -> "hdr10"
