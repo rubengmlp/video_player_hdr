@@ -35,12 +35,15 @@ class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
   bool? _isHdrSupported;
   List<String>? _supportedHdrFormats;
   String? _error;
+  bool? _isWideColorGamutSupported;
 
   @override
   void initState() {
     super.initState();
     _controller = HdrVideoPlayerController.asset('assets/videos/01.MOV')
-      ..initialize().then((_) {
+      ..initialize(
+        viewType: VideoViewType.platformView,
+      ).then((_) {
         setState(() {
           _isInitialized = true;
         });
@@ -81,6 +84,20 @@ class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
       setState(() {
         _supportedHdrFormats = null;
         _error = 'Error getting HDR formats: $e';
+      });
+    }
+  }
+
+  Future<void> _checkWideColorGamutSupported() async {
+    try {
+      final result = await _controller.isWideColorGamutSupported();
+      setState(() {
+        _isWideColorGamutSupported = result;
+      });
+    } catch (e) {
+      setState(() {
+        _isWideColorGamutSupported = null;
+        _error = 'Error checking wide color gamut: $e';
       });
     }
   }
@@ -131,6 +148,13 @@ class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
               ),
               if (_supportedHdrFormats != null)
                 Text('Supported HDR formats: ${_supportedHdrFormats!.join(", ")}'),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _checkWideColorGamutSupported,
+                child: const Text('Check wide color gamut supported'),
+              ),
+              if (_isWideColorGamutSupported != null)
+                Text('Wide color gamut supported: ${_isWideColorGamutSupported! ? "Yes" : "No"}'),
             ],
           ),
         ),

@@ -17,7 +17,8 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         context = flutterPluginBinding.applicationContext
-        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "video_player_hdr/hdr_control")
+        channel =
+            MethodChannel(flutterPluginBinding.binaryMessenger, "video_player_hdr/hdr_control")
         channel.setMethodCallHandler(this)
     }
 
@@ -29,17 +30,13 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
         when (call.method) {
             "isHdrSupported" -> isHdrSupported(result)
             "getSupportedHdrFormats" -> getSupportedHdrFormats(result)
-            // "getVideoColorInfo" -> getVideoColorInfo(result)
-            // "getHdrStaticInfo" -> getHdrStaticInfo(result)
-            // "setPreferredHdrMode" -> setPreferredHdrMode(call, result)
-            // "getPreferredHdrMode" -> getPreferredHdrMode(result)
-            // "setMaxBitrate" -> setMaxBitrate(call, result)
+            "isWideColorGamutSupported" -> isWideColorGamutSupported(result)
             else -> result.notImplemented()
         }
     }
 
     private fun isHdrSupported(result: Result) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             result.success(false)
             return
         }
@@ -48,9 +45,7 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
             val displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
             val display = displayManager.getDisplay(Display.DEFAULT_DISPLAY)
             if (display != null) {
-                val hdrCapabilities = display.hdrCapabilities
-                val supportedHdrTypes = hdrCapabilities.supportedHdrTypes
-                result.success(supportedHdrTypes.isNotEmpty())
+                result.success(display.isHdr)
             } else {
                 result.success(false)
             }
@@ -91,7 +86,35 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
                 result.success(emptyList<String>())
             }
         } catch (e: Exception) {
-                result.error("HDR_FORMATS_FAILED", "Failed to get supported HDR formats: ${e.message}", null)
+            result.error(
+                "HDR_FORMATS_FAILED",
+                "Failed to get supported HDR formats: ${e.message}",
+                null
+            )
+        }
+    }
+
+    private fun isWideColorGamutSupported(result: Result) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            result.success(false)
+            return
+        }
+
+        try {
+            val displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+            val display = displayManager.getDisplay(Display.DEFAULT_DISPLAY)
+            if (display != null) {
+                result.success(display.isWideColorGamut)
+            } else {
+                result.success(false)
             }
+        } catch (e: Exception) {
+            result.error(
+                "WIDE_COLOR_GAMUT_FAILED",
+                "Failed to check wide color gamut support: ${e.message}",
+                null
+            )
+        }
+
     }
 }

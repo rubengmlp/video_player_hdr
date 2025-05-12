@@ -423,60 +423,13 @@ class HdrVideoPlayerController extends ValueNotifier<HdrVideoPlayerValue> {
     }
   }
 
-  /// Get the color information of the video
-  Future<Map<String, dynamic>> getVideoColorInfo() async {
+  Future<bool> isWideColorGamutSupported() async {
     try {
-      final Map<String, dynamic> colorInfo = await _hdrChannel.invokeMethod('getColorInfo');
-      return colorInfo;
+      final bool isSupported = await _hdrChannel.invokeMethod('isWideColorGamutSupported');
+      return isSupported;
     } on PlatformException catch (e) {
       throw HdrVideoError(
-        'Failed to get color information: ${e.message}',
-      );
-    }
-  }
-
-  /// Get the static HDR information of the video
-  Future<Map<String, dynamic>> getHdrStaticInfo() async {
-    try {
-      final Map<String, dynamic> hdrStaticInfo = await _hdrChannel.invokeMethod('getHdrStaticInfo');
-      return hdrStaticInfo;
-    } on PlatformException catch (e) {
-      throw HdrVideoError(
-        'Failed to get HDR static information: ${e.message}',
-      );
-    }
-  }
-
-  /// Set the preferred HDR mode of the video
-  Future<void> setPreferredHdrMode(String mode) async {
-    try {
-      await _hdrChannel.invokeMethod('setPreferredHdrMode', mode);
-    } on PlatformException catch (e) {
-      throw HdrVideoError(
-        'Failed to set preferred HDR mode: ${e.message}',
-      );
-    }
-  }
-
-  /// Get the current HDR mode of the video
-  Future<String> getPreferredHdrMode() async {
-    try {
-      final String mode = await _hdrChannel.invokeMethod('getPreferredHdrMode');
-      return mode;
-    } on PlatformException catch (e) {
-      throw HdrVideoError(
-        'Failed to get preferred HDR mode: ${e.message}',
-      );
-    }
-  }
-
-  /// Set the maximum bitrate of the video
-  Future<void> setMaxBitrate(int bitrate) async {
-    try {
-      await _hdrChannel.invokeMethod('setMaxBitrate', bitrate);
-    } on PlatformException catch (e) {
-      throw HdrVideoError(
-        'Failed to set maximum bitrate: ${e.message}',
+        'Failed to check wide color gamut support: ${e.message}',
       );
     }
   }
