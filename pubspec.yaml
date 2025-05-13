@@ -15,7 +15,7 @@ flutter:
         package: com.rubengmlp.video_player_hdr
         pluginClass: VideoPlayerHdrPlugin
       ios:
-        default_package: video_player_avfoundation
+        pluginClass: VideoPlayerHdrPlugin
       macos:
         default_package: video_player_avfoundation
       web:
