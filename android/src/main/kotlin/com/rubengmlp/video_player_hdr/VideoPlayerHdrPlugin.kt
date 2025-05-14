@@ -2,6 +2,8 @@ package com.rubengmlp.video_player_hdr
 
 import android.content.Context
 import android.hardware.display.DisplayManager
+import android.media.MediaMetadataRetriever
+import android.net.Uri
 import android.os.Build
 import android.view.Display
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -9,14 +11,18 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import java.io.File
+import java.io.FileOutputStream
 
 /** VideoPlayerHdrPlugin */
 class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
     private lateinit var channel: MethodChannel
     private lateinit var context: Context
+    private lateinit var flutterAssets: FlutterPlugin.FlutterAssets
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         context = flutterPluginBinding.applicationContext
+        flutterAssets = flutterPluginBinding.flutterAssets
         channel =
             MethodChannel(flutterPluginBinding.binaryMessenger, "video_player_hdr/hdr_control")
         channel.setMethodCallHandler(this)
@@ -31,6 +37,7 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
             "isHdrSupported" -> isHdrSupported(result)
             "getSupportedHdrFormats" -> getSupportedHdrFormats(result)
             "isWideColorGamutSupported" -> isWideColorGamutSupported(result)
+            "getVideoMetadata" -> getVideoMetadata(call, result)
             else -> result.notImplemented()
         }
     }
@@ -116,5 +123,103 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
             )
         }
 
+    }
+
+    private fun getVideoMetadata(call: MethodCall, result: Result) {
+        val filePath = call.argument<String>("filePath")
+
+        if (filePath == null) {
+            result.error("INVALID_ARGUMENT", "File path is required to extract metadata", null)
+            return
+        }
+
+        try {
+            val metadataRetriever = MediaMetadataRetriever()
+
+            when {
+                filePath.startsWith("asset://") -> {
+                    val assetPath = filePath.substring(8)
+                    val resolvedPath = flutterAssets.getAssetFilePathByName(assetPath)
+
+                    val assetManager = context.assets
+                    val inputStream = assetManager.open(resolvedPath)
+
+                    val videoFormat = assetPath.substringAfterLast('.', "")
+                    val tempFile = File.createTempFile("temp_video", ".$videoFormat", context.cacheDir)
+                    val outputStream = FileOutputStream(tempFile)
+                    inputStream.copyTo(outputStream)
+                    outputStream.close()
+                    inputStream.close()
+
+                    metadataRetriever.setDataSource(
+                        tempFile.absolutePath
+                    )
+                    tempFile.delete()
+                }
+
+                filePath.startsWith("file://") -> metadataRetriever.setDataSource(
+                    filePath.substring(7)
+                )
+
+                filePath.startsWith("http") -> metadataRetriever.setDataSource(
+                    filePath,
+                    HashMap<String, String>()
+                )
+
+                filePath.startsWith("content://") -> metadataRetriever.setDataSource(
+                    context,
+                    Uri.parse(filePath)
+                )
+
+                else -> metadataRetriever.setDataSource(filePath)
+            }
+
+            val videoMetadata = HashMap<String, Any?>()
+
+            // Basic video information
+            videoMetadata["width"] =
+                metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
+                    ?.toIntOrNull()
+            videoMetadata["height"] =
+                metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
+                    ?.toIntOrNull()
+            videoMetadata["bitrate"] =
+                metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)
+                    ?.toIntOrNull()
+            videoMetadata["duration"] =
+                metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                    ?.toLongOrNull()
+
+            // Rotation
+            videoMetadata["rotation"] =
+                metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
+                    ?.toIntOrNull() ?: 0
+
+            // Framerate
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                videoMetadata["frameRate"] =
+                    metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CAPTURE_FRAMERATE)
+                        ?.toFloatOrNull()
+            }
+
+            // HDR information
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                videoMetadata["colorStandard"] =
+                    metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COLOR_STANDARD)
+                        ?.toIntOrNull()
+                videoMetadata["colorTransfer"] =
+                    metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COLOR_TRANSFER)
+                        ?.toIntOrNull()
+                videoMetadata["colorRange"] =
+                    metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COLOR_RANGE)
+                        ?.toIntOrNull()
+            }
+
+            result.success(videoMetadata)
+
+            metadataRetriever.release()
+        } catch (e: Exception) {
+            result.error("METADATA_ERROR", "Error extracting metadata: ${e.message}", null)
+        }
     }
 }

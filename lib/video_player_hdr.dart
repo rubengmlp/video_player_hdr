@@ -434,6 +434,27 @@ class HdrVideoPlayerController extends ValueNotifier<HdrVideoPlayerValue> {
     }
   }
 
+  Future<Map<String, dynamic>> getVideoMetadata() async {
+    try {
+      String formattedPath;
+      if (dataSourceType == DataSourceType.asset) {
+        formattedPath = 'asset://$dataSource';
+      } else {
+        formattedPath = dataSource;
+      }
+
+      final result = await _hdrChannel.invokeMethod('getVideoMetadata', {
+        'filePath': formattedPath,
+      });
+      final Map<String, dynamic> metadata = Map<String, dynamic>.from(result as Map);
+      return metadata;
+    } on PlatformException catch (e) {
+      throw HdrVideoError(
+        'Failed to get video metadata: ${e.message}',
+      );
+    }
+  }
+
   /// Attempts to open the given [dataSource] and load metadata about the video.
   Future<void> initialize({
     VideoViewType viewType = VideoViewType.platformView,

@@ -36,6 +36,7 @@ class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
   List<String>? _supportedHdrFormats;
   String? _error;
   bool? _isWideColorGamutSupported;
+  Map<String, dynamic> _metadata = {};
 
   @override
   void initState() {
@@ -70,6 +71,19 @@ class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
       setState(() {
         _isHdrSupported = null;
         _error = 'Error checking HDR: $e';
+      });
+    }
+  }
+
+  Future<void> _getVideoMetadata() async {
+    try {
+      final result = await _controller.getVideoMetadata();
+      setState(() {
+        _metadata = result;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Error getting video metadata: $e';
       });
     }
   }
@@ -155,6 +169,12 @@ class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
               ),
               if (_isWideColorGamutSupported != null)
                 Text('Wide color gamut supported: ${_isWideColorGamutSupported! ? "Yes" : "No"}'),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _getVideoMetadata,
+                child: const Text('Get video metadata'),
+              ),
+              if (_metadata.isNotEmpty) Text('Video metadata: $_metadata'),
             ],
           ),
         ),
