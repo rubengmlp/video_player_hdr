@@ -204,15 +204,34 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
 
             // HDR information
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                videoMetadata["colorStandard"] =
+                val colorStandard =
                     metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COLOR_STANDARD)
-                        ?.toIntOrNull()
-                videoMetadata["colorTransfer"] =
+                val colorTransfer =
                     metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COLOR_TRANSFER)
-                        ?.toIntOrNull()
-                videoMetadata["colorRange"] =
+                val colorRange =
                     metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COLOR_RANGE)
-                        ?.toIntOrNull()
+
+                videoMetadata["colorStandard"] = when (colorStandard) {
+                    "6" -> "BT2020"
+                    "4" -> "BT601_NTSC"
+                    "2" -> "BT601_PAL"
+                    "1" -> "BT709"
+                    else -> "null"
+                }
+
+                videoMetadata["colorTransfer"] = when (colorTransfer) {
+                    "7" -> "HLG"
+                    "6" -> "ST2084"
+                    "3" -> "SDR_VIDEO"
+                    "1" -> "LINEAR"
+                    else -> "null"
+                }
+
+                videoMetadata["colorRange"] = when (colorRange) {
+                    "2" -> "LIMITED"
+                    "1" -> "FULL"
+                    else -> "null"
+                }
             }
 
             result.success(videoMetadata)
