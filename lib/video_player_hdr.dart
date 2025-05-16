@@ -446,6 +446,7 @@ class HdrVideoPlayerController extends ValueNotifier<HdrVideoPlayerValue> {
 
       final result = await _hdrChannel.invokeMethod('getVideoMetadata', {
         'filePath': formattedPath,
+        'httpHeaders': httpHeaders,
       });
       final Map<String, dynamic> metadata = Map<String, dynamic>.from(result as Map);
       return metadata;

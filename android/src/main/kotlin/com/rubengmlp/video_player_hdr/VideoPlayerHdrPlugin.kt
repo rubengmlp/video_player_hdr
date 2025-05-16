@@ -127,6 +127,7 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun getVideoMetadata(call: MethodCall, result: Result) {
         val filePath = call.argument<String>("filePath")
+        val httpHeaders = call.argument<Map<String, String>>("httpHeaders")
 
         if (filePath == null) {
             result.error("INVALID_ARGUMENT", "File path is required to extract metadata", null)
@@ -163,7 +164,7 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
 
                 filePath.startsWith("http") -> metadataRetriever.setDataSource(
                     filePath,
-                    HashMap<String, String>()
+                    httpHeaders?.toMap() ?: HashMap<String, String>()
                 )
 
                 filePath.startsWith("content://") -> metadataRetriever.setDataSource(
