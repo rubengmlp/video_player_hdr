@@ -434,13 +434,14 @@ class HdrVideoPlayerController extends ValueNotifier<HdrVideoPlayerValue> {
     }
   }
 
-  Future<Map<String, dynamic>> getVideoMetadata() async {
+  Future<Map<String, dynamic>> getVideoMetadata({String? path}) async {
     try {
       String formattedPath;
+      final String filePath = path ?? dataSource;
       if (dataSourceType == DataSourceType.asset) {
-        formattedPath = 'asset://$dataSource';
+        formattedPath = 'asset://$filePath';
       } else {
-        formattedPath = dataSource;
+        formattedPath = filePath;
       }
 
       final result = await _hdrChannel.invokeMethod('getVideoMetadata', {
