@@ -24,6 +24,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
+    namespace 'com.rubengmlp.video_player_hdr'
     compileSdkVersion 34
 
     defaultConfig {

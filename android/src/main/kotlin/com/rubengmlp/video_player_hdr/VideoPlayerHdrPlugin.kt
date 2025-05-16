@@ -2,6 +2,8 @@ package com.rubengmlp.video_player_hdr
 
 import android.content.Context
 import android.hardware.display.DisplayManager
+import android.media.MediaMetadataRetriever
+import android.net.Uri
 import android.os.Build
 import android.view.Display
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -9,15 +11,20 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import java.io.File
+import java.io.FileOutputStream
 
 /** VideoPlayerHdrPlugin */
 class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
     private lateinit var channel: MethodChannel
     private lateinit var context: Context
+    private lateinit var flutterAssets: FlutterPlugin.FlutterAssets
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         context = flutterPluginBinding.applicationContext
-        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "video_player_hdr/hdr_control")
+        flutterAssets = flutterPluginBinding.flutterAssets
+        channel =
+            MethodChannel(flutterPluginBinding.binaryMessenger, "video_player_hdr/hdr_control")
         channel.setMethodCallHandler(this)
     }
 
@@ -29,17 +36,14 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
         when (call.method) {
             "isHdrSupported" -> isHdrSupported(result)
             "getSupportedHdrFormats" -> getSupportedHdrFormats(result)
-            // "getVideoColorInfo" -> getVideoColorInfo(result)
-            // "getHdrStaticInfo" -> getHdrStaticInfo(result)
-            // "setPreferredHdrMode" -> setPreferredHdrMode(call, result)
-            // "getPreferredHdrMode" -> getPreferredHdrMode(result)
-            // "setMaxBitrate" -> setMaxBitrate(call, result)
+            "isWideColorGamutSupported" -> isWideColorGamutSupported(result)
+            "getVideoMetadata" -> getVideoMetadata(call, result)
             else -> result.notImplemented()
         }
     }
 
     private fun isHdrSupported(result: Result) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             result.success(false)
             return
         }
@@ -48,9 +52,7 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
             val displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
             val display = displayManager.getDisplay(Display.DEFAULT_DISPLAY)
             if (display != null) {
-                val hdrCapabilities = display.hdrCapabilities
-                val supportedHdrTypes = hdrCapabilities.supportedHdrTypes
-                result.success(supportedHdrTypes.isNotEmpty())
+                result.success(display.isHdr)
             } else {
                 result.success(false)
             }
@@ -71,7 +73,7 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
             if (display != null) {
                 val hdrCapabilities = display.hdrCapabilities
                 val supportedHdrTypes = hdrCapabilities.supportedHdrTypes
-                val formats = supportedHdrTypes.mapNotNull { type ->
+                val formats = supportedHdrTypes.toList().mapNotNull { type ->
                     when (type) {
                         Display.HdrCapabilities.HDR_TYPE_DOLBY_VISION -> "dolby_vision"
                         Display.HdrCapabilities.HDR_TYPE_HDR10 -> "hdr10"
@@ -91,7 +93,133 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
                 result.success(emptyList<String>())
             }
         } catch (e: Exception) {
-                result.error("HDR_FORMATS_FAILED", "Failed to get supported HDR formats: ${e.message}", null)
+            result.error(
+                "HDR_FORMATS_FAILED",
+                "Failed to get supported HDR formats: ${e.message}",
+                null
+            )
+        }
+    }
+
+    private fun isWideColorGamutSupported(result: Result) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            result.success(false)
+            return
+        }
+
+        try {
+            val displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+            val display = displayManager.getDisplay(Display.DEFAULT_DISPLAY)
+            if (display != null) {
+                result.success(display.isWideColorGamut)
+            } else {
+                result.success(false)
             }
+        } catch (e: Exception) {
+            result.error(
+                "WIDE_COLOR_GAMUT_FAILED",
+                "Failed to check wide color gamut support: ${e.message}",
+                null
+            )
+        }
+
+    }
+
+    private fun getVideoMetadata(call: MethodCall, result: Result) {
+        val filePath = call.argument<String>("filePath")
+
+        if (filePath == null) {
+            result.error("INVALID_ARGUMENT", "File path is required to extract metadata", null)
+            return
+        }
+
+        try {
+            val metadataRetriever = MediaMetadataRetriever()
+
+            when {
+                filePath.startsWith("asset://") -> {
+                    val assetPath = filePath.substring(8)
+                    val resolvedPath = flutterAssets.getAssetFilePathByName(assetPath)
+
+                    val assetManager = context.assets
+                    val inputStream = assetManager.open(resolvedPath)
+
+                    val videoFormat = assetPath.substringAfterLast('.', "")
+                    val tempFile = File.createTempFile("temp_video", ".$videoFormat", context.cacheDir)
+                    val outputStream = FileOutputStream(tempFile)
+                    inputStream.copyTo(outputStream)
+                    outputStream.close()
+                    inputStream.close()
+
+                    metadataRetriever.setDataSource(
+                        tempFile.absolutePath
+                    )
+                    tempFile.delete()
+                }
+
+                filePath.startsWith("file://") -> metadataRetriever.setDataSource(
+                    filePath.substring(7)
+                )
+
+                filePath.startsWith("http") -> metadataRetriever.setDataSource(
+                    filePath,
+                    HashMap<String, String>()
+                )
+
+                filePath.startsWith("content://") -> metadataRetriever.setDataSource(
+                    context,
+                    Uri.parse(filePath)
+                )
+
+                else -> metadataRetriever.setDataSource(filePath)
+            }
+
+            val videoMetadata = HashMap<String, Any?>()
+
+            // Basic video information
+            videoMetadata["width"] =
+                metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
+                    ?.toIntOrNull()
+            videoMetadata["height"] =
+                metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
+                    ?.toIntOrNull()
+            videoMetadata["bitrate"] =
+                metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)
+                    ?.toIntOrNull()
+            videoMetadata["duration"] =
+                metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                    ?.toLongOrNull()
+
+            // Rotation
+            videoMetadata["rotation"] =
+                metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
+                    ?.toIntOrNull() ?: 0
+
+            // Framerate
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                videoMetadata["frameRate"] =
+                    metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CAPTURE_FRAMERATE)
+                        ?.toFloatOrNull()
+            }
+
+            // HDR information
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                videoMetadata["colorStandard"] =
+                    metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COLOR_STANDARD)
+                        ?.toIntOrNull()
+                videoMetadata["colorTransfer"] =
+                    metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COLOR_TRANSFER)
+                        ?.toIntOrNull()
+                videoMetadata["colorRange"] =
+                    metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COLOR_RANGE)
+                        ?.toIntOrNull()
+            }
+
+            result.success(videoMetadata)
+
+            metadataRetriever.release()
+        } catch (e: Exception) {
+            result.error("METADATA_ERROR", "Error extracting metadata: ${e.message}", null)
+        }
     }
 }

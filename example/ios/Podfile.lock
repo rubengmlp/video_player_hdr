@@ -1,0 +1,29 @@
+PODS:
+  - Flutter (1.0.0)
+  - video_player_avfoundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - video_player_hdr (0.0.1):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - video_player_avfoundation (from `.symlinks/plugins/video_player_avfoundation/darwin`)
+  - video_player_hdr (from `.symlinks/plugins/video_player_hdr/ios`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  video_player_avfoundation:
+    :path: ".symlinks/plugins/video_player_avfoundation/darwin"
+  video_player_hdr:
+    :path: ".symlinks/plugins/video_player_hdr/ios"
+
+SPEC CHECKSUMS:
+  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  video_player_avfoundation: 7c6c11d8470e1675df7397027218274b6d2360b3
+  video_player_hdr: bdfa1847b05551928e642b7589928bef7a7bd5fc
+
+PODFILE CHECKSUM: 819463e6a0290f5a72f145ba7cde16e8b6ef0796
+
+COCOAPODS: 1.16.2
