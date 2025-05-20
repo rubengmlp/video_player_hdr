@@ -1,16 +1,12 @@
 # video_player_hdr_example
 
-Demonstrates how to use the video_player_hdr plugin.
+Demonstrates how to use the video_player_hdr plugin. Includes an HDR video sample to showcase the HDR capabilities of the plugin.
 
-## Getting Started
+The example demonstrates the following HDR-related methods:
+- `isHdrSupported()`: Checks if the device supports HDR playback
+- `getSupportedHdrFormats()`: Returns a list of HDR formats supported by the device
+- `isWideColorGamutSupported()`: Verifies if the device supports wide color gamut
+- `getVideoMetadata()`: Retrieves metadata from the video
 
-This project is a starting point for a Flutter application.
+These methods are only available on Android and iOS platforms.
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
