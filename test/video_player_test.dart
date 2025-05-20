@@ -107,6 +107,9 @@ class FakeController extends ValueNotifier<VideoPlayerHdrValue>
       'height': 1080,
       'duration': 10000,
       'frameRate': 30,
+      'colorStandard': 'BT2020',
+      'colorTransfer': 'HLG',
+      'colorRange': 'FULL',
     });
   }
 }
@@ -260,7 +263,7 @@ void main() {
     }, skip: isBrowser);
   });
 
-  group('VideoPlayerController', () {
+  group('VideoPlayerHdrController', () {
     group('legacy initialize', () {
       test('network', () async {
         final VideoPlayerHdrController controller = VideoPlayerHdrController.network(
@@ -1388,6 +1391,65 @@ void main() {
     await controller.seekTo(const Duration(seconds: 10));
 
     await controller.seekTo(const Duration(seconds: 20));
+  });
+
+  group('HDR functionality with FakeController', () {
+    late FakeController controller;
+
+    setUp(() {
+      controller = FakeController();
+    });
+
+    tearDown(() {
+      controller.dispose();
+    });
+
+    test('HDR support detection', () async {
+      expect(await controller.isHdrSupported(), isTrue);
+
+      controller.value =
+          controller.value.copyWith(errorDescription: 'HDR not supported on this device');
+      expect(controller.value.hasError, isTrue);
+    });
+
+    test('HDR formats list', () async {
+      final formats = await controller.getSupportedHdrFormats();
+      expect(formats, containsAll(['hdr10', 'dolby_vision', 'hlg']));
+    });
+
+    test('Wide Color Gamut support', () async {
+      expect(await controller.isWideColorGamutSupported(), isTrue);
+    });
+
+    test('Video metadata retrieval', () async {
+      final metadata = await controller.getVideoMetadata();
+
+      expect(metadata, isA<Map<String, dynamic>>());
+      expect(metadata['width'], equals(1920));
+      expect(metadata['height'], equals(1080));
+      expect(metadata['colorStandard'], equals('BT2020'));
+      expect(metadata['colorTransfer'], equals('HLG'));
+    });
+
+    test('HDR video completion', () async {
+      await controller.initialize();
+
+      controller.value = controller.value.copyWith(
+          duration: const Duration(seconds: 10),
+          position: const Duration(seconds: 10),
+          isPlaying: false,
+          isCompleted: true);
+
+      expect(controller.value.isCompleted, isTrue);
+      expect(await controller.getVideoMetadata(), isNotNull);
+    });
+
+    test('Error handling for unsupported HDR format', () async {
+      controller.value = controller.value.copyWith(errorDescription: 'Unsupported HDR format');
+
+      expect(controller.value.hasError, isTrue);
+      expect(controller.value.errorDescription, contains('Unsupported HDR format'));
+    });
   });
 }
 
