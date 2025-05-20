@@ -41,8 +41,8 @@ class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerHdrController.networkUrl(Uri.parse(
-        'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4'))
+    // HDR video included in example assets
+    _controller = VideoPlayerHdrController.asset('assets/videos/01.MOV')
       ..initialize(
         viewType: VideoViewType.platformView,
       ).then((_) {
