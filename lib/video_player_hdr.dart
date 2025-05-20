@@ -401,6 +401,12 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
 
   /// Check if the device supports HDR playback
   Future<bool> isHdrSupported() async {
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      throw HdrVideoError(
+        'HDR support check is only available on Android and iOS',
+      );
+    }
+
     try {
       final bool isSupported = await _hdrChannel.invokeMethod('isHdrSupported');
       return isSupported;
@@ -413,6 +419,12 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
 
   /// Get the list of supported HDR formats on this device
   Future<List<String>> getSupportedHdrFormats() async {
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      throw HdrVideoError(
+        'HDR formats check is only available on Android and iOS',
+      );
+    }
+
     try {
       final List<dynamic> formats = await _hdrChannel.invokeMethod('getSupportedHdrFormats');
       return formats.cast<String>();
@@ -424,6 +436,12 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
   }
 
   Future<bool> isWideColorGamutSupported() async {
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      throw HdrVideoError(
+        'Wide color gamut support check is only available on Android and iOS',
+      );
+    }
+
     try {
       final bool isSupported = await _hdrChannel.invokeMethod('isWideColorGamutSupported');
       return isSupported;
@@ -435,6 +453,12 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
   }
 
   Future<Map<String, dynamic>> getVideoMetadata({String? path}) async {
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      throw HdrVideoError(
+        'Video metadata retrieval is only available on Android and iOS',
+      );
+    }
+
     try {
       String formattedPath;
       final String filePath = path ?? dataSource;
@@ -461,6 +485,11 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
   Future<void> initialize({
     VideoViewType viewType = VideoViewType.platformView,
   }) async {
+    // Set default viewType to textureView for platforms other than Android and iOS
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      viewType = VideoViewType.textureView;
+    }
+
     final bool allowBackgroundPlayback = videoPlayerOptions?.allowBackgroundPlayback ?? false;
     if (!allowBackgroundPlayback) {
       _lifeCycleObserver = _VideoAppLifeCycleObserver(this);
