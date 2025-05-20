@@ -134,22 +134,14 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
             return
         }
 
-        // Check if the file is an HLS or DASH manifest
+        // Check if the file is HLS or DASH
         if (filePath.startsWith("http") && (filePath.endsWith(".m3u8") || filePath.endsWith(".mpd"))) {
             val streamingFormat = if (filePath.endsWith(".m3u8")) "HLS" else "DASH"
-            val videoMetadata = HashMap<String, Any?>()
-            
-            // We can't extract detailed metadata from streaming manifests
-            videoMetadata["width"] = null
-            videoMetadata["height"] = null
-            videoMetadata["bitrate"] = null
-            videoMetadata["duration"] = null
-            videoMetadata["rotation"] = 0
-            videoMetadata["frameRate"] = null
-            videoMetadata["isStreamingFormat"] = true
-            videoMetadata["streamingType"] = streamingFormat
-            
-            result.success(videoMetadata)
+            result.error(
+                "STREAMING_METADATA_UNSUPPORTED",
+                "Cannot extract metadata from streaming formats ($streamingFormat)",
+                null
+            )
             return
         }
 
@@ -195,9 +187,6 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
             }
 
             val videoMetadata = HashMap<String, Any?>()
-            
-            // Indicate this is not a streaming format
-            videoMetadata["isStreamingFormat"] = false
 
             // Basic video information
             videoMetadata["width"] =

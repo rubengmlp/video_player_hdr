@@ -98,6 +98,15 @@ public class VideoPlayerHdrPlugin: NSObject, FlutterPlugin {
     
     @available(iOS 15.0, *)
     private func getVideoMetadata(filePath: String, result: @escaping FlutterResult) {
+        // Check if the file is HLS or DASH
+        if (filePath.hasSuffix(".m3u8") || filePath.hasSuffix(".mpd")) && (filePath.hasPrefix("http://") || filePath.hasPrefix("https://")) {
+            let streamingFormat = filePath.hasSuffix(".m3u8") ? "HLS" : "DASH"
+            result(FlutterError(code: "STREAMING_METADATA_UNSUPPORTED",
+                                message: "Cannot extract metadata from streaming formats (\(streamingFormat))",
+                                details: nil))
+            return
+        }
+
         var assetURL: URL?
 
          if filePath.hasPrefix("asset://") {
