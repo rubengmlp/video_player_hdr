@@ -1,6 +1,13 @@
 # video_player_hdr
 
+[![pub package](https://img.shields.io/pub/v/video_player_hdr.svg)](https://pub.dev/packages/video_player_hdr)
+[![GitHub license](https://img.shields.io/github/license/rubengmlp/video_player_hdr.svg)](LICENSE)
+[![GitHub issues](https://img.shields.io/github/issues/rubengmlp/video_player_hdr.svg)](https://github.com/rubengmlp/video_player_hdr/issues)
+[![GitHub issues closed](https://img.shields.io/github/issues-closed/rubengmlp/video_player_hdr.svg)](https://github.com/rubengmlp/video_player_hdr/issues?q=is%3Aissue+is%3Aclosed)
+
 A fork of the official Flutter `video_player` plugin with **HDR (High Dynamic Range) support** for Android and iOS. This package exposes the option of using platform views in addition to the texture view currently offered by `video_player`.
+
+<hr />
 
 ## Features
 
