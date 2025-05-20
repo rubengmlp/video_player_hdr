@@ -129,11 +129,21 @@ class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
             children: [
               if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
               if (_isInitialized)
-                SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.7,
-                  child: AspectRatio(
-                    aspectRatio: _controller.value.aspectRatio,
-                    child: VideoPlayerHdr(_controller),
+                Center(
+                  child: Container(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width,
+                      maxHeight: MediaQuery.of(context).size.height * 0.7,
+                    ),
+                    child: AspectRatio(
+                      aspectRatio: _controller.value.aspectRatio,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          VideoPlayerHdr(_controller),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               const SizedBox(height: 16),
