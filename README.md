@@ -1,4 +1,4 @@
-# video_player_hdr
+# Video Player HDR
 
 [![pub package](https://img.shields.io/pub/v/video_player_hdr.svg)](https://pub.dev/packages/video_player_hdr)
 [![GitHub license](https://img.shields.io/github/license/rubengmlp/video_player_hdr.svg)](LICENSE)
