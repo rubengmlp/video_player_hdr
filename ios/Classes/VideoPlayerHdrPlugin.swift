@@ -53,7 +53,7 @@ public class VideoPlayerHdrPlugin: NSObject, FlutterPlugin {
             // P3 color space is a requirement for any HDR support
             if screen.traitCollection.displayGamut == .P3 {
                 // All devices with P3 support HDR10
-                formats.append("HDR10")
+                formats.append("hdr10")
                 
                 // Detect the model to determine Dolby Vision support
                 let deviceModel = UIDevice.current.modelName
@@ -66,7 +66,7 @@ public class VideoPlayerHdrPlugin: NSObject, FlutterPlugin {
                    deviceModel.contains("iPhone 14") || 
                    deviceModel.contains("iPhone 15") ||
                    deviceModel.contains("iPhone 16") {  
-                    formats.append("Dolby Vision")
+                    formats.append("dolby_vision")
                 }
                 
                 // HLG is supported on most recent devices with HDR capability
@@ -76,7 +76,7 @@ public class VideoPlayerHdrPlugin: NSObject, FlutterPlugin {
                    deviceModel.contains("iPhone 14") || 
                    deviceModel.contains("iPhone 15") ||
                    deviceModel.contains("iPhone 16") {  
-                    formats.append("HLG")
+                    formats.append("hlg")
                 }
             }
             

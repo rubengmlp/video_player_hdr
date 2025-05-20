@@ -86,45 +86,28 @@ class FakeController extends ValueNotifier<VideoPlayerHdrValue>
   ) async {}
 
   @override
-  Future<Map<String, dynamic>> getHdrStaticInfo() {
-    // TODO: implement getHdrStaticInfo
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<String> getPreferredHdrMode() {
-    // TODO: implement getPreferredHdrMode
-    throw UnimplementedError();
-  }
-
-  @override
   Future<List<String>> getSupportedHdrFormats() {
-    // TODO: implement getSupportedHdrFormats
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Map<String, dynamic>> getVideoColorInfo() {
-    // TODO: implement getVideoColorInfo
-    throw UnimplementedError();
+    return Future.value(['hdr10', 'hlg', 'dolby_vision']);
   }
 
   @override
   Future<bool> isHdrSupported() {
-    // TODO: implement isHdrSupported
-    throw UnimplementedError();
+    return Future.value(true);
   }
 
   @override
-  Future<void> setMaxBitrate(int bitrate) {
-    // TODO: implement setMaxBitrate
-    throw UnimplementedError();
+  Future<bool> isWideColorGamutSupported() {
+    return Future.value(true);
   }
 
   @override
-  Future<void> setPreferredHdrMode(String mode) {
-    // TODO: implement setPreferredHdrMode
-    throw UnimplementedError();
+  Future<Map<String, dynamic>> getVideoMetadata({String? path}) {
+    return Future.value({
+      'width': 1920,
+      'height': 1080,
+      'duration': 10000,
+      'frameRate': 30,
+    });
   }
 }
 
