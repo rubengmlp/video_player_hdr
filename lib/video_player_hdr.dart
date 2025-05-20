@@ -485,11 +485,6 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
   Future<void> initialize({
     VideoViewType viewType = VideoViewType.platformView,
   }) async {
-    // Set default viewType to textureView for platforms other than Android and iOS
-    if (!Platform.isAndroid && !Platform.isIOS) {
-      viewType = VideoViewType.textureView;
-    }
-
     final bool allowBackgroundPlayback = videoPlayerOptions?.allowBackgroundPlayback ?? false;
     if (!allowBackgroundPlayback) {
       _lifeCycleObserver = _VideoAppLifeCycleObserver(this);
