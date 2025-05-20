@@ -435,6 +435,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
     }
   }
 
+  /// Check if the device supports wide color gamut
   Future<bool> isWideColorGamutSupported() async {
     if (!Platform.isAndroid && !Platform.isIOS) {
       throw HdrVideoError(
@@ -452,6 +453,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
     }
   }
 
+  /// Retrieves metadata about the video.
   Future<Map<String, dynamic>> getVideoMetadata({String? path}) async {
     if (!Platform.isAndroid && !Platform.isIOS) {
       throw HdrVideoError(
