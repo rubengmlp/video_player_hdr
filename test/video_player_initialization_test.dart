@@ -15,12 +15,11 @@ void main() {
   late FakeVideoPlayerPlatform fakeVideoPlayerPlatform;
 
   setUp(() {
-    VideoPlayerPlatform.instance =
-        fakeVideoPlayerPlatform = FakeVideoPlayerPlatform();
+    VideoPlayerPlatform.instance = fakeVideoPlayerPlatform = FakeVideoPlayerPlatform();
   });
 
   test('plugin initialized', () async {
-    final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+    final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
       Uri.parse('https://127.0.0.1'),
     );
     await controller.initialize();
@@ -34,7 +33,7 @@ void main() {
       controls: VideoPlayerWebOptionsControls.enabled(),
     );
 
-    final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+    final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
       Uri.parse('https://127.0.0.1'),
       videoPlayerOptions: VideoPlayerOptions(
         webOptions: expected,

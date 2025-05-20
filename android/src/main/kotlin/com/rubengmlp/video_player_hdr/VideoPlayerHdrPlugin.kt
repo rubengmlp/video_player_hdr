@@ -134,6 +134,25 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
             return
         }
 
+        // Check if the file is an HLS or DASH manifest
+        if (filePath.startsWith("http") && (filePath.endsWith(".m3u8") || filePath.endsWith(".mpd"))) {
+            val streamingFormat = if (filePath.endsWith(".m3u8")) "HLS" else "DASH"
+            val videoMetadata = HashMap<String, Any?>()
+            
+            // We can't extract detailed metadata from streaming manifests
+            videoMetadata["width"] = null
+            videoMetadata["height"] = null
+            videoMetadata["bitrate"] = null
+            videoMetadata["duration"] = null
+            videoMetadata["rotation"] = 0
+            videoMetadata["frameRate"] = null
+            videoMetadata["isStreamingFormat"] = true
+            videoMetadata["streamingType"] = streamingFormat
+            
+            result.success(videoMetadata)
+            return
+        }
+
         try {
             val metadataRetriever = MediaMetadataRetriever()
 
@@ -176,6 +195,9 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
             }
 
             val videoMetadata = HashMap<String, Any?>()
+            
+            // Indicate this is not a streaming format
+            videoMetadata["isStreamingFormat"] = false
 
             // Basic video information
             videoMetadata["width"] =
@@ -239,7 +261,16 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
 
             metadataRetriever.release()
         } catch (e: Exception) {
-            result.error("METADATA_ERROR", "Error extracting metadata: ${e.message}", null)
+            // Check if the exception might be related to streaming formats that weren't detected by extension
+            if (filePath.startsWith("http")) {
+                result.error(
+                    "METADATA_ERROR", 
+                    "Error extracting metadata. This might be a streaming format (HLS/DASH) that cannot be processed directly: ${e.message}",
+                    null
+                )
+            } else {
+                result.error("METADATA_ERROR", "Error extracting metadata: ${e.message}", null)
+            }
         }
     }
 }

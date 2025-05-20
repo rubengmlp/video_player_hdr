@@ -18,9 +18,9 @@ import 'package:video_player_platform_interface/video_player_platform_interface.
 const String _localhost = 'https://127.0.0.1';
 final Uri _localhostUri = Uri.parse(_localhost);
 
-class FakeController extends ValueNotifier<HdrVideoPlayerValue>
-    implements HdrVideoPlayerController {
-  FakeController() : super(const HdrVideoPlayerValue(duration: Duration.zero));
+class FakeController extends ValueNotifier<VideoPlayerHdrValue>
+    implements VideoPlayerHdrController {
+  FakeController() : super(const VideoPlayerHdrValue(duration: Duration.zero));
 
   FakeController.value(super.value);
 
@@ -30,7 +30,7 @@ class FakeController extends ValueNotifier<HdrVideoPlayerValue>
   }
 
   @override
-  int textureId = HdrVideoPlayerController.kUninitializedTextureId;
+  int textureId = VideoPlayerHdrController.kUninitializedTextureId;
 
   @override
   String get dataSource => '';
@@ -159,7 +159,7 @@ void main() {
   });
 
   void verifyPlayStateRespondsToLifecycle(
-    HdrVideoPlayerController controller, {
+    VideoPlayerHdrController controller, {
     required bool shouldPlayInBackground,
   }) {
     expect(controller.value.isPlaying, true);
@@ -172,7 +172,7 @@ void main() {
   testWidgets('update texture', (WidgetTester tester) async {
     final FakeController controller = FakeController();
     addTearDown(controller.dispose);
-    await tester.pumpWidget(HdrVideoPlayer(controller));
+    await tester.pumpWidget(VideoPlayerHdr(controller));
     expect(find.byType(Texture), findsNothing);
 
     controller.textureId = 123;
@@ -189,7 +189,7 @@ void main() {
     final FakeController controller1 = FakeController();
     addTearDown(controller1.dispose);
     controller1.textureId = 101;
-    await tester.pumpWidget(HdrVideoPlayer(controller1));
+    await tester.pumpWidget(VideoPlayerHdr(controller1));
     expect(
         find.byWidgetPredicate(
           (Widget widget) => widget is Texture && widget.textureId == 101,
@@ -199,7 +199,7 @@ void main() {
     final FakeController controller2 = FakeController();
     addTearDown(controller2.dispose);
     controller2.textureId = 102;
-    await tester.pumpWidget(HdrVideoPlayer(controller2));
+    await tester.pumpWidget(VideoPlayerHdr(controller2));
     expect(
         find.byWidgetPredicate(
           (Widget widget) => widget is Texture && widget.textureId == 102,
@@ -209,10 +209,10 @@ void main() {
 
   testWidgets('non-zero rotationCorrection value is used', (WidgetTester tester) async {
     final FakeController controller = FakeController.value(
-        const HdrVideoPlayerValue(duration: Duration.zero, rotationCorrection: 180));
+        const VideoPlayerHdrValue(duration: Duration.zero, rotationCorrection: 180));
     addTearDown(controller.dispose);
     controller.textureId = 1;
-    await tester.pumpWidget(HdrVideoPlayer(controller));
+    await tester.pumpWidget(VideoPlayerHdr(controller));
     final RotatedBox actualRotationCorrection =
         find.byType(RotatedBox).evaluate().single.widget as RotatedBox;
     final int actualQuarterTurns = actualRotationCorrection.quarterTurns;
@@ -221,10 +221,10 @@ void main() {
 
   testWidgets('no RotatedBox when rotationCorrection is zero', (WidgetTester tester) async {
     final FakeController controller =
-        FakeController.value(const HdrVideoPlayerValue(duration: Duration.zero));
+        FakeController.value(const VideoPlayerHdrValue(duration: Duration.zero));
     addTearDown(controller.dispose);
     controller.textureId = 1;
-    await tester.pumpWidget(HdrVideoPlayer(controller));
+    await tester.pumpWidget(VideoPlayerHdr(controller));
     expect(find.byType(RotatedBox), findsNothing);
   });
 
@@ -280,7 +280,7 @@ void main() {
   group('VideoPlayerController', () {
     group('legacy initialize', () {
       test('network', () async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.network(
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.network(
           'https://127.0.0.1',
         );
         await controller.initialize();
@@ -300,7 +300,7 @@ void main() {
       });
 
       test('network with hint', () async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.network(
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.network(
           'https://127.0.0.1',
           formatHint: VideoFormat.dash,
         );
@@ -321,7 +321,7 @@ void main() {
       });
 
       test('network with some headers', () async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.network(
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.network(
           'https://127.0.0.1',
           httpHeaders: <String, String>{'Authorization': 'Bearer token'},
         );
@@ -343,7 +343,7 @@ void main() {
     });
     group('initialize', () {
       test('started app lifecycle observing', () async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
           Uri.parse('https://127.0.0.1'),
         );
         addTearDown(controller.dispose);
@@ -353,7 +353,7 @@ void main() {
       });
 
       test('asset', () async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.asset(
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.asset(
           'a.avi',
         );
         await controller.initialize();
@@ -363,8 +363,8 @@ void main() {
       });
 
       test('network url', () async {
-        final HdrVideoPlayerController controller =
-            HdrVideoPlayerController.networkUrl(Uri.parse('https://127.0.0.1'));
+        final VideoPlayerHdrController controller =
+            VideoPlayerHdrController.networkUrl(Uri.parse('https://127.0.0.1'));
         addTearDown(controller.dispose);
         await controller.initialize();
 
@@ -383,7 +383,7 @@ void main() {
       });
 
       test('network url with hint', () async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
           Uri.parse('https://127.0.0.1'),
           formatHint: VideoFormat.dash,
         );
@@ -405,7 +405,7 @@ void main() {
       });
 
       test('network url with some headers', () async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
           Uri.parse('https://127.0.0.1'),
           httpHeaders: <String, String>{'Authorization': 'Bearer token'},
         );
@@ -429,7 +429,7 @@ void main() {
       test('when controller is initialized with invalid url it should throw VideoError', () async {
         final Uri invalidUrl = Uri.parse('http://testing.com/invalid_url');
 
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(invalidUrl);
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(invalidUrl);
         addTearDown(controller.dispose);
 
         late Object error;
@@ -440,7 +440,7 @@ void main() {
       });
 
       test('file', () async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.file(File('a.avi'));
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.file(File('a.avi'));
         await controller.initialize();
 
         final String uri = fakeVideoPlayerPlatform.dataSources[0].uri!;
@@ -449,8 +449,8 @@ void main() {
       }, skip: kIsWeb /* Web does not support file assets. */);
 
       test('file with special characters', () async {
-        final HdrVideoPlayerController controller =
-            HdrVideoPlayerController.file(File('A #1 Hit.avi'));
+        final VideoPlayerHdrController controller =
+            VideoPlayerHdrController.file(File('A #1 Hit.avi'));
         await controller.initialize();
 
         final String uri = fakeVideoPlayerPlatform.dataSources[0].uri!;
@@ -459,7 +459,7 @@ void main() {
       }, skip: kIsWeb /* Web does not support file assets. */);
 
       test('file with headers (m3u8)', () async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.file(
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.file(
           File('a.avi'),
           httpHeaders: <String, String>{'Authorization': 'Bearer token'},
         );
@@ -475,7 +475,7 @@ void main() {
         );
       }, skip: kIsWeb /* Web does not support file assets. */);
       test('successful initialize on controller with error clears error', () async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.network(
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.network(
           'https://127.0.0.1',
         );
         fakeVideoPlayerPlatform.forceInitError = true;
@@ -488,8 +488,8 @@ void main() {
 
       test('given controller with error when initialization succeeds it should clear error',
           () async {
-        final HdrVideoPlayerController controller =
-            HdrVideoPlayerController.networkUrl(_localhostUri);
+        final VideoPlayerHdrController controller =
+            VideoPlayerHdrController.networkUrl(_localhostUri);
         addTearDown(controller.dispose);
 
         fakeVideoPlayerPlatform.forceInitError = true;
@@ -502,19 +502,19 @@ void main() {
     });
 
     test('contentUri', () async {
-      final HdrVideoPlayerController controller =
-          HdrVideoPlayerController.contentUri(Uri.parse('content://video'));
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.contentUri(Uri.parse('content://video'));
       await controller.initialize();
 
       expect(fakeVideoPlayerPlatform.dataSources[0].uri, 'content://video');
     });
 
     test('dispose', () async {
-      final HdrVideoPlayerController controller =
-          HdrVideoPlayerController.networkUrl(_localhostUri);
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
       addTearDown(controller.dispose);
 
-      expect(controller.textureId, HdrVideoPlayerController.kUninitializedTextureId);
+      expect(controller.textureId, VideoPlayerHdrController.kUninitializedTextureId);
       expect(await controller.position, Duration.zero);
       await controller.initialize();
 
@@ -525,8 +525,8 @@ void main() {
     });
 
     test('calling dispose() on disposed controller does not throw', () async {
-      final HdrVideoPlayerController controller =
-          HdrVideoPlayerController.networkUrl(_localhostUri);
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
       addTearDown(controller.dispose);
 
       await controller.initialize();
@@ -536,8 +536,8 @@ void main() {
     });
 
     test('play', () async {
-      final HdrVideoPlayerController controller =
-          HdrVideoPlayerController.networkUrl(Uri.parse('https://127.0.0.1'));
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(Uri.parse('https://127.0.0.1'));
       addTearDown(controller.dispose);
 
       await controller.initialize();
@@ -553,8 +553,8 @@ void main() {
     });
 
     test('play before initialized does not call platform', () async {
-      final HdrVideoPlayerController controller =
-          HdrVideoPlayerController.networkUrl(_localhostUri);
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
       addTearDown(controller.dispose);
 
       expect(controller.value.isInitialized, isFalse);
@@ -565,8 +565,8 @@ void main() {
     });
 
     test('play restarts from beginning if video is at end', () async {
-      final HdrVideoPlayerController controller =
-          HdrVideoPlayerController.networkUrl(_localhostUri);
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
       addTearDown(controller.dispose);
 
       await controller.initialize();
@@ -583,8 +583,8 @@ void main() {
     });
 
     test('setLooping', () async {
-      final HdrVideoPlayerController controller =
-          HdrVideoPlayerController.networkUrl(_localhostUri);
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
       addTearDown(controller.dispose);
 
       await controller.initialize();
@@ -595,8 +595,8 @@ void main() {
     });
 
     test('pause', () async {
-      final HdrVideoPlayerController controller =
-          HdrVideoPlayerController.networkUrl(_localhostUri);
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
       addTearDown(controller.dispose);
 
       await controller.initialize();
@@ -611,8 +611,8 @@ void main() {
 
     group('seekTo', () {
       test('works', () async {
-        final HdrVideoPlayerController controller =
-            HdrVideoPlayerController.networkUrl(_localhostUri);
+        final VideoPlayerHdrController controller =
+            VideoPlayerHdrController.networkUrl(_localhostUri);
         addTearDown(controller.dispose);
 
         await controller.initialize();
@@ -624,8 +624,8 @@ void main() {
       });
 
       test('before initialized does not call platform', () async {
-        final HdrVideoPlayerController controller =
-            HdrVideoPlayerController.networkUrl(_localhostUri);
+        final VideoPlayerHdrController controller =
+            VideoPlayerHdrController.networkUrl(_localhostUri);
         addTearDown(controller.dispose);
 
         expect(controller.value.isInitialized, isFalse);
@@ -636,8 +636,8 @@ void main() {
       });
 
       test('clamps values that are too high or low', () async {
-        final HdrVideoPlayerController controller =
-            HdrVideoPlayerController.networkUrl(_localhostUri);
+        final VideoPlayerHdrController controller =
+            VideoPlayerHdrController.networkUrl(_localhostUri);
         addTearDown(controller.dispose);
 
         await controller.initialize();
@@ -653,8 +653,8 @@ void main() {
 
     group('setVolume', () {
       test('works', () async {
-        final HdrVideoPlayerController controller =
-            HdrVideoPlayerController.networkUrl(_localhostUri);
+        final VideoPlayerHdrController controller =
+            VideoPlayerHdrController.networkUrl(_localhostUri);
         addTearDown(controller.dispose);
 
         await controller.initialize();
@@ -667,8 +667,8 @@ void main() {
       });
 
       test('clamps values that are too high or low', () async {
-        final HdrVideoPlayerController controller =
-            HdrVideoPlayerController.networkUrl(_localhostUri);
+        final VideoPlayerHdrController controller =
+            VideoPlayerHdrController.networkUrl(_localhostUri);
         addTearDown(controller.dispose);
 
         await controller.initialize();
@@ -684,8 +684,8 @@ void main() {
 
     group('setPlaybackSpeed', () {
       test('works', () async {
-        final HdrVideoPlayerController controller =
-            HdrVideoPlayerController.networkUrl(_localhostUri);
+        final VideoPlayerHdrController controller =
+            VideoPlayerHdrController.networkUrl(_localhostUri);
         addTearDown(controller.dispose);
 
         await controller.initialize();
@@ -698,8 +698,8 @@ void main() {
       });
 
       test('rejects negative values', () async {
-        final HdrVideoPlayerController controller =
-            HdrVideoPlayerController.networkUrl(_localhostUri);
+        final VideoPlayerHdrController controller =
+            VideoPlayerHdrController.networkUrl(_localhostUri);
         addTearDown(controller.dispose);
 
         await controller.initialize();
@@ -711,8 +711,8 @@ void main() {
 
     group('scrubbing', () {
       testWidgets('restarts on release if already playing', (WidgetTester tester) async {
-        final HdrVideoPlayerController controller =
-            HdrVideoPlayerController.networkUrl(_localhostUri);
+        final VideoPlayerHdrController controller =
+            VideoPlayerHdrController.networkUrl(_localhostUri);
 
         await controller.initialize();
         final VideoProgressIndicator progressWidget =
@@ -738,8 +738,8 @@ void main() {
       });
 
       testWidgets('does not restart when dragging to end', (WidgetTester tester) async {
-        final HdrVideoPlayerController controller =
-            HdrVideoPlayerController.networkUrl(_localhostUri);
+        final VideoPlayerHdrController controller =
+            VideoPlayerHdrController.networkUrl(_localhostUri);
 
         await controller.initialize();
         final VideoProgressIndicator progressWidget =
@@ -765,7 +765,7 @@ void main() {
 
     group('caption', () {
       test('works when position updates', () async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
           _localhostUri,
           closedCaptionFile: _loadClosedCaption(),
         );
@@ -802,7 +802,7 @@ void main() {
       });
 
       test('works when seeking', () async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
           _localhostUri,
           closedCaptionFile: _loadClosedCaption(),
         );
@@ -835,7 +835,7 @@ void main() {
       });
 
       test('works when seeking with captionOffset positive', () async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
           _localhostUri,
           closedCaptionFile: _loadClosedCaption(),
         );
@@ -872,7 +872,7 @@ void main() {
       });
 
       test('works when seeking with captionOffset negative', () async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
           _localhostUri,
           closedCaptionFile: _loadClosedCaption(),
         );
@@ -912,7 +912,7 @@ void main() {
       });
 
       test('setClosedCaptionFile loads caption file', () async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
           _localhostUri,
         );
         addTearDown(controller.dispose);
@@ -928,7 +928,7 @@ void main() {
       });
 
       test('setClosedCaptionFile removes/changes caption file', () async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
           _localhostUri,
           closedCaptionFile: _loadClosedCaption(),
         );
@@ -947,7 +947,7 @@ void main() {
 
     group('Platform callbacks', () {
       testWidgets('playing completed', (WidgetTester tester) async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
           _localhostUri,
         );
 
@@ -969,7 +969,7 @@ void main() {
       });
 
       testWidgets('playback status', (WidgetTester tester) async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.network(
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.network(
           'https://.0.0.1',
         );
         await controller.initialize();
@@ -994,7 +994,7 @@ void main() {
       });
 
       testWidgets('buffering status', (WidgetTester tester) async {
-        final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
           _localhostUri,
         );
 
@@ -1029,7 +1029,7 @@ void main() {
   });
 
   test('updates position', () async {
-    final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+    final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
       _localhostUri,
       videoPlayerOptions: VideoPlayerOptions(),
     );
@@ -1089,7 +1089,7 @@ void main() {
 
   group('VideoPlayerValue', () {
     test('uninitialized()', () {
-      const HdrVideoPlayerValue uninitialized = HdrVideoPlayerValue.uninitialized();
+      const VideoPlayerHdrValue uninitialized = VideoPlayerHdrValue.uninitialized();
 
       expect(uninitialized.duration, equals(Duration.zero));
       expect(uninitialized.position, equals(Duration.zero));
@@ -1110,7 +1110,7 @@ void main() {
 
     test('erroneous()', () {
       const String errorMessage = 'foo';
-      const HdrVideoPlayerValue error = HdrVideoPlayerValue.erroneous(errorMessage);
+      const VideoPlayerHdrValue error = VideoPlayerHdrValue.erroneous(errorMessage);
 
       expect(error.duration, equals(Duration.zero));
       expect(error.position, equals(Duration.zero));
@@ -1146,7 +1146,7 @@ void main() {
       const double volume = 0.5;
       const double playbackSpeed = 1.5;
 
-      final HdrVideoPlayerValue value = HdrVideoPlayerValue(
+      final VideoPlayerHdrValue value = VideoPlayerHdrValue(
         duration: duration,
         size: size,
         position: position,
@@ -1181,26 +1181,26 @@ void main() {
 
     group('copyWith()', () {
       test('exact copy', () {
-        const HdrVideoPlayerValue original = HdrVideoPlayerValue.uninitialized();
-        final HdrVideoPlayerValue exactCopy = original.copyWith();
+        const VideoPlayerHdrValue original = VideoPlayerHdrValue.uninitialized();
+        final VideoPlayerHdrValue exactCopy = original.copyWith();
 
         expect(exactCopy.toString(), original.toString());
       });
       test('errorDescription is not persisted when copy with null', () {
-        const HdrVideoPlayerValue original = HdrVideoPlayerValue.erroneous('error');
-        final HdrVideoPlayerValue copy = original.copyWith(errorDescription: null);
+        const VideoPlayerHdrValue original = VideoPlayerHdrValue.erroneous('error');
+        final VideoPlayerHdrValue copy = original.copyWith(errorDescription: null);
 
         expect(copy.errorDescription, null);
       });
       test('errorDescription is changed when copy with another error', () {
-        const HdrVideoPlayerValue original = HdrVideoPlayerValue.erroneous('error');
-        final HdrVideoPlayerValue copy = original.copyWith(errorDescription: 'new error');
+        const VideoPlayerHdrValue original = VideoPlayerHdrValue.erroneous('error');
+        final VideoPlayerHdrValue copy = original.copyWith(errorDescription: 'new error');
 
         expect(copy.errorDescription, 'new error');
       });
       test('errorDescription is changed when copy with error', () {
-        const HdrVideoPlayerValue original = HdrVideoPlayerValue.uninitialized();
-        final HdrVideoPlayerValue copy = original.copyWith(errorDescription: 'new error');
+        const VideoPlayerHdrValue original = VideoPlayerHdrValue.uninitialized();
+        final VideoPlayerHdrValue copy = original.copyWith(errorDescription: 'new error');
 
         expect(copy.errorDescription, 'new error');
       });
@@ -1208,7 +1208,7 @@ void main() {
 
     group('aspectRatio', () {
       test('640x480 -> 4:3', () {
-        const HdrVideoPlayerValue value = HdrVideoPlayerValue(
+        const VideoPlayerHdrValue value = VideoPlayerHdrValue(
           isInitialized: true,
           size: Size(640, 480),
           duration: Duration(seconds: 1),
@@ -1217,7 +1217,7 @@ void main() {
       });
 
       test('no size -> 1.0', () {
-        const HdrVideoPlayerValue value = HdrVideoPlayerValue(
+        const VideoPlayerHdrValue value = VideoPlayerHdrValue(
           isInitialized: true,
           duration: Duration(seconds: 1),
         );
@@ -1225,7 +1225,7 @@ void main() {
       });
 
       test('height = 0 -> 1.0', () {
-        const HdrVideoPlayerValue value = HdrVideoPlayerValue(
+        const VideoPlayerHdrValue value = VideoPlayerHdrValue(
           isInitialized: true,
           size: Size(640, 0),
           duration: Duration(seconds: 1),
@@ -1234,7 +1234,7 @@ void main() {
       });
 
       test('width = 0 -> 1.0', () {
-        const HdrVideoPlayerValue value = HdrVideoPlayerValue(
+        const VideoPlayerHdrValue value = VideoPlayerHdrValue(
           isInitialized: true,
           size: Size(0, 480),
           duration: Duration(seconds: 1),
@@ -1243,7 +1243,7 @@ void main() {
       });
 
       test('negative aspect ratio -> 1.0', () {
-        const HdrVideoPlayerValue value = HdrVideoPlayerValue(
+        const VideoPlayerHdrValue value = VideoPlayerHdrValue(
           isInitialized: true,
           size: Size(640, -480),
           duration: Duration(seconds: 1),
@@ -1255,7 +1255,7 @@ void main() {
 
   group('VideoPlayerOptions', () {
     test('setMixWithOthers', () async {
-      final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+      final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
         _localhostUri,
         videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
       );
@@ -1266,7 +1266,7 @@ void main() {
     });
 
     test('true allowBackgroundPlayback continues playback', () async {
-      final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+      final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
         _localhostUri,
         videoPlayerOptions: VideoPlayerOptions(
           allowBackgroundPlayback: true,
@@ -1283,7 +1283,7 @@ void main() {
     });
 
     test('false allowBackgroundPlayback pauses playback', () async {
-      final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+      final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
         _localhostUri,
         videoPlayerOptions: VideoPlayerOptions(),
       );
@@ -1312,7 +1312,7 @@ void main() {
   });
 
   test('isCompleted updates on video end', () async {
-    final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+    final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
       _localhostUri,
       videoPlayerOptions: VideoPlayerOptions(),
     );
@@ -1340,7 +1340,7 @@ void main() {
   });
 
   test('isCompleted updates on video play after completed', () async {
-    final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+    final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
       _localhostUri,
       videoPlayerOptions: VideoPlayerOptions(),
     );
@@ -1377,7 +1377,7 @@ void main() {
   });
 
   test('isCompleted updates on video seek to end', () async {
-    final HdrVideoPlayerController controller = HdrVideoPlayerController.networkUrl(
+    final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
       _localhostUri,
       videoPlayerOptions: VideoPlayerOptions(),
     );

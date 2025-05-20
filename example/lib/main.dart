@@ -30,7 +30,7 @@ class VideoPlayerHdrExample extends StatefulWidget {
 }
 
 class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
-  late HdrVideoPlayerController _controller;
+  late VideoPlayerHdrController _controller;
   bool _isInitialized = false;
   bool? _isHdrSupported;
   List<String>? _supportedHdrFormats;
@@ -41,7 +41,7 @@ class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
   @override
   void initState() {
     super.initState();
-    _controller = HdrVideoPlayerController.networkUrl(Uri.parse(
+    _controller = VideoPlayerHdrController.networkUrl(Uri.parse(
         'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4'))
       ..initialize(
         viewType: VideoViewType.platformView,
@@ -133,7 +133,7 @@ class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
                   height: MediaQuery.of(context).size.height * 0.7,
                   child: AspectRatio(
                     aspectRatio: _controller.value.aspectRatio,
-                    child: HdrVideoPlayer(_controller),
+                    child: VideoPlayerHdr(_controller),
                   ),
                 ),
               const SizedBox(height: 16),
