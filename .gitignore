@@ -80,7 +80,6 @@ example/.packages
 example/pubspec.lock
 example/.flutter-plugins
 example/.flutter-plugins-dependencies
-example/ios/Flutter/
 example/ios/Pods/
 example/android/local.properties
 example/lib/generated_plugin_registrant.dart
