@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:video_player_hdr/video_player_hdr.dart';
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
 
-import 'video_player_test.dart' show FakeVideoPlayerPlatform;
+import 'video_player_hdr_test.dart' show FakeVideoPlayerPlatform;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
