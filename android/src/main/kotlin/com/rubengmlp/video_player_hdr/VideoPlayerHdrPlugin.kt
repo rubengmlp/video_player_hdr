@@ -24,7 +24,7 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
         context = flutterPluginBinding.applicationContext
         flutterAssets = flutterPluginBinding.flutterAssets
         channel =
-            MethodChannel(flutterPluginBinding.binaryMessenger, "video_player_hdr/hdr_control")
+            MethodChannel(flutterPluginBinding.binaryMessenger, "video_player_hdr")
         channel.setMethodCallHandler(this)
     }
 

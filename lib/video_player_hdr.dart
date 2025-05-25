@@ -397,7 +397,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
   @visibleForTesting
   int get textureId => _textureId;
 
-  static const MethodChannel _hdrChannel = MethodChannel('video_player_hdr/hdr_control');
+  static const MethodChannel _hdrChannel = MethodChannel('video_player_hdr');
 
   /// Check if the device supports HDR playback
   Future<bool> isHdrSupported() async {

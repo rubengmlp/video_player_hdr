@@ -7,7 +7,7 @@ public class VideoPlayerHdrPlugin: NSObject, FlutterPlugin {
 
     public static func register(with registrar: FlutterPluginRegistrar) {
         self.registrar = registrar
-        let channel = FlutterMethodChannel(name: "video_player_hdr/hdr_control", binaryMessenger: registrar.messenger())
+        let channel = FlutterMethodChannel(name: "video_player_hdr", binaryMessenger: registrar.messenger())
         let instance = VideoPlayerHdrPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
