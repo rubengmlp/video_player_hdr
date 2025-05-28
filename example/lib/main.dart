@@ -121,9 +121,9 @@ class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: const Text(
           'Video Player HDR Example',
-          textAlign: TextAlign.center,
         ),
       ),
       body: Padding(
