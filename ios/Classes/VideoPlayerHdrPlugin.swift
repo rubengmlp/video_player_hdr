@@ -60,6 +60,7 @@ public class VideoPlayerHdrPlugin: NSObject, FlutterPlugin {
                 
                 // Devices with OLED screens support Dolby Vision
                 if deviceModel.contains("iPhone X") && !deviceModel.contains("iPhone XR") ||
+                   deviceModel.contains("iPhone 11") ||
                    deviceModel.contains("iPhone 11 Pro") ||
                    deviceModel.contains("iPhone 12") || 
                    deviceModel.contains("iPhone 13") || 
