@@ -141,7 +141,10 @@ class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
                       maxHeight: MediaQuery.of(context).size.height * 0.7,
                     ),
                     child: AspectRatio(
-                      aspectRatio: _controller.value.aspectRatio,
+                      aspectRatio: (_controller.value.rotationCorrection == 90 ||
+                              _controller.value.rotationCorrection == 270)
+                          ? 1 / _controller.value.aspectRatio
+                          : _controller.value.aspectRatio,
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
