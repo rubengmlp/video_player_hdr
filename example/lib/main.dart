@@ -120,7 +120,12 @@ class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Video Player HDR Example')),
+      appBar: AppBar(
+        title: const Text(
+          'Video Player HDR Example',
+          textAlign: TextAlign.center,
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
