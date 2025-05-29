@@ -83,6 +83,8 @@ example/.flutter-plugins-dependencies
 example/ios/Pods/
 example/android/local.properties
 example/lib/generated_plugin_registrant.dart
+example/ios/Runner.xcodeproj/project.pbxproj
+example/ios/Runner/Info.plist
 
 # Coverage
 coverage/
