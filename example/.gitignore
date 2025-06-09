@@ -34,6 +34,10 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
+# iOS related
+ios/Runner.xcodeproj/project.pbxproj
+ios/Runner/Info.plist
+
 # Android Studio will place build artifacts here
 /android/app/debug
 /android/app/profile

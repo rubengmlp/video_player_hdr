@@ -14,7 +14,9 @@ class MyApp extends StatelessWidget {
       title: 'Video Player HDR Example',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+        ),
         useMaterial3: true,
       ),
       home: const VideoPlayerHdrExample(),
@@ -37,21 +39,29 @@ class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
   String? _error;
   bool? _isWideColorGamutSupported;
   Map<String, dynamic> _metadata = {};
+  VideoViewType _currentViewType = VideoViewType.platformView;
+  bool _isChangingViewType = false;
 
   @override
   void initState() {
     super.initState();
+    _initializeController();
+  }
+
+  void _initializeController() {
     // HDR video included in example assets
     _controller = VideoPlayerHdrController.asset('assets/videos/01.MOV')
       ..initialize(
-        viewType: VideoViewType.platformView,
+        viewType: _currentViewType,
       ).then((_) {
         setState(() {
           _isInitialized = true;
+          _isChangingViewType = false;
         });
       }).catchError((e) {
         setState(() {
           _error = 'Error charging video: $e';
+          _isChangingViewType = false;
         });
       });
   }
@@ -60,6 +70,41 @@ class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _switchViewType() async {
+    if (_isChangingViewType) return;
+
+    setState(() {
+      _isChangingViewType = true;
+      _isInitialized = false;
+      _error = null;
+    });
+
+    final currentPosition = _controller.value.position;
+    final wasPlaying = _controller.value.isPlaying;
+
+    await _controller.dispose();
+
+    _currentViewType = _currentViewType == VideoViewType.platformView
+        ? VideoViewType.textureView
+        : VideoViewType.platformView;
+
+    _initializeController();
+
+    late VoidCallback listener;
+    listener = () {
+      if (_controller.value.isInitialized && _isInitialized) {
+        _controller.removeListener(listener);
+
+        _controller.seekTo(currentPosition).then((_) {
+          if (wasPlaying) {
+            _controller.play();
+          }
+        });
+      }
+    };
+    _controller.addListener(listener);
   }
 
   Future<void> _checkHdrSupported() async {
@@ -132,8 +177,34 @@ class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      Text(
+                        'View Type: ${_currentViewType == VideoViewType.platformView ? "Platform View" : "Texture View"}',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      ElevatedButton(
+                        onPressed: _isChangingViewType ? null : _switchViewType,
+                        child: _isChangingViewType
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Text(_currentViewType == VideoViewType.platformView
+                                ? 'Switch to Texture View'
+                                : 'Switch to Platform View'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
-              if (_isInitialized)
+              if (_isInitialized && !_isChangingViewType)
                 Center(
                   child: Container(
                     constraints: BoxConstraints(
@@ -154,43 +225,70 @@ class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
                     ),
                   ),
                 ),
+              if (_isChangingViewType)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: Column(
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Changing view type...'),
+                      ],
+                    ),
+                  ),
+                ),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconButton(
+                    icon: const Icon(Icons.replay),
+                    onPressed: _isInitialized && !_isChangingViewType
+                        ? () {
+                            _controller.seekTo(Duration.zero);
+                          }
+                        : null,
+                  ),
+                  const SizedBox(width: 20),
+                  IconButton(
                     icon: Icon(_controller.value.isPlaying ? Icons.pause : Icons.play_arrow),
-                    onPressed: () {
-                      setState(() {
-                        _controller.value.isPlaying ? _controller.pause() : _controller.play();
-                      });
-                    },
+                    onPressed: _isInitialized && !_isChangingViewType
+                        ? () {
+                            setState(() {
+                              _controller.value.isPlaying
+                                  ? _controller.pause()
+                                  : _controller.play();
+                            });
+                          }
+                        : null,
                   ),
                 ],
               ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: _checkHdrSupported,
+                onPressed: _isInitialized && !_isChangingViewType ? _checkHdrSupported : null,
                 child: const Text('Supports HDR?'),
               ),
               if (_isHdrSupported != null) Text('Supports HDR: ${_isHdrSupported! ? "Yes" : "No"}'),
               const SizedBox(height: 12),
               ElevatedButton(
-                onPressed: _getSupportedHdrFormats,
+                onPressed: _isInitialized && !_isChangingViewType ? _getSupportedHdrFormats : null,
                 child: const Text('Get supported HDR formats'),
               ),
               if (_supportedHdrFormats != null)
                 Text('Supported HDR formats: ${_supportedHdrFormats!.join(", ")}'),
               const SizedBox(height: 12),
               ElevatedButton(
-                onPressed: _checkWideColorGamutSupported,
+                onPressed:
+                    _isInitialized && !_isChangingViewType ? _checkWideColorGamutSupported : null,
                 child: const Text('Check wide color gamut supported'),
               ),
               if (_isWideColorGamutSupported != null)
                 Text('Wide color gamut supported: ${_isWideColorGamutSupported! ? "Yes" : "No"}'),
               const SizedBox(height: 12),
               ElevatedButton(
-                onPressed: _getVideoMetadata,
+                onPressed: _isInitialized && !_isChangingViewType ? _getVideoMetadata : null,
                 child: const Text('Get video metadata'),
               ),
               if (_metadata.isNotEmpty) Text('Video metadata: $_metadata'),
