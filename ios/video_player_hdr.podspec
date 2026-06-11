@@ -13,7 +13,7 @@ A fork of Flutter video_player that adds HDR support.
   s.license          = { :type => 'BSD', :file => '../LICENSE' }
   s.author           = { 'Rubén Gómez López' => 'rubengmlp@gmail.com' }
   s.source           = { :path => '.' }
-  s.source_files     = 'Classes/**/*'
+  s.source_files     = 'video_player_hdr/Sources/video_player_hdr/**/*.swift'
   s.platform         = :ios, '10.0'
   s.dependency 'Flutter'
 
