@@ -63,7 +63,7 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun getSupportedHdrFormats(result: Result) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-            result.success(false)
+            result.success(emptyList<String>())
             return
         }
 

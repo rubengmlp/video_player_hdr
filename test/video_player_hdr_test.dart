@@ -1149,7 +1149,7 @@ void main() {
 
       expect(
           value.toString(),
-          'VideoPlayerValue(duration: 0:00:05.000000, '
+          'VideoPlayerHdrValue(duration: 0:00:05.000000, '
           'size: Size(400.0, 300.0), '
           'position: 0:00:01.000000, '
           'caption: Caption(number: 0, start: 0:00:00.000000, end: 0:00:00.000000, text: foo), '
