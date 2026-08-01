@@ -24,7 +24,8 @@ public class VideoPlayerHdrPlugin: NSObject, FlutterPlugin {
             if #available(iOS 15.0, *) {
                 if let args = call.arguments as? [String: Any],
                            let filePath = args["filePath"] as? String {
-                            getVideoMetadata(filePath: filePath, result: result)
+                            let httpHeaders = args["httpHeaders"] as? [String: String]
+                            getVideoMetadata(filePath: filePath, httpHeaders: httpHeaders, result: result)
                         } else {
                             result(FlutterError(code: "INVALID_ARGUMENT",
                                               message: "File path is required and must be a string",
@@ -61,21 +62,25 @@ public class VideoPlayerHdrPlugin: NSObject, FlutterPlugin {
                 // Devices with OLED screens support Dolby Vision
                 if deviceModel.contains("iPhone X") && !deviceModel.contains("iPhone XR") ||
                    deviceModel.contains("iPhone 11 Pro") ||
-                   deviceModel.contains("iPhone 12") || 
-                   deviceModel.contains("iPhone 13") || 
-                   deviceModel.contains("iPhone 14") || 
+                   deviceModel.contains("iPhone 12") ||
+                   deviceModel.contains("iPhone 13") ||
+                   deviceModel.contains("iPhone 14") ||
                    deviceModel.contains("iPhone 15") ||
-                   deviceModel.contains("iPhone 16") {  
+                   deviceModel.contains("iPhone 16") ||
+                   deviceModel.contains("iPhone 17") ||
+                   deviceModel.contains("iPhone Air") {
                     formats.append("dolby_vision")
                 }
-                
+
                 // HLG is supported on most recent devices with HDR capability
-                if deviceModel.contains("iPhone 11") || 
-                   deviceModel.contains("iPhone 12") || 
-                   deviceModel.contains("iPhone 13") || 
-                   deviceModel.contains("iPhone 14") || 
+                if deviceModel.contains("iPhone 11") ||
+                   deviceModel.contains("iPhone 12") ||
+                   deviceModel.contains("iPhone 13") ||
+                   deviceModel.contains("iPhone 14") ||
                    deviceModel.contains("iPhone 15") ||
-                   deviceModel.contains("iPhone 16") {  
+                   deviceModel.contains("iPhone 16") ||
+                   deviceModel.contains("iPhone 17") ||
+                   deviceModel.contains("iPhone Air") {
                     formats.append("hlg")
                 }
             }
@@ -97,7 +102,7 @@ public class VideoPlayerHdrPlugin: NSObject, FlutterPlugin {
     }
     
     @available(iOS 15.0, *)
-    private func getVideoMetadata(filePath: String, result: @escaping FlutterResult) {
+    private func getVideoMetadata(filePath: String, httpHeaders: [String: String]?, result: @escaping FlutterResult) {
         // Check if the file is HLS or DASH
         if (filePath.hasSuffix(".m3u8") || filePath.hasSuffix(".mpd")) && (filePath.hasPrefix("http://") || filePath.hasPrefix("https://")) {
             let streamingFormat = filePath.hasSuffix(".m3u8") ? "HLS" : "DASH"
@@ -146,7 +151,13 @@ public class VideoPlayerHdrPlugin: NSObject, FlutterPlugin {
                     return
                 }
         
-        let asset = AVAsset(url: url)
+        let asset: AVAsset
+        if let httpHeaders = httpHeaders, !httpHeaders.isEmpty,
+           url.scheme == "http" || url.scheme == "https" {
+            asset = AVURLAsset(url: url, options: ["AVURLAssetHTTPHeaderFieldsKey": httpHeaders])
+        } else {
+            asset = AVAsset(url: url)
+        }
     
     Task {
         do {
@@ -247,10 +258,16 @@ extension UIDevice {
         case "iPhone15,5": return "iPhone 15 Plus"
         case "iPhone16,1": return "iPhone 15 Pro"
         case "iPhone16,2": return "iPhone 15 Pro Max"
-        case "iPhone17,1": return "iPhone 16"
-        case "iPhone17,2": return "iPhone 16 Plus"
-        case "iPhone17,3": return "iPhone 16 Pro"
-        case "iPhone17,4": return "iPhone 16 Pro Max"
+        case "iPhone17,1": return "iPhone 16 Pro"
+        case "iPhone17,2": return "iPhone 16 Pro Max"
+        case "iPhone17,3": return "iPhone 16"
+        case "iPhone17,4": return "iPhone 16 Plus"
+        case "iPhone17,5": return "iPhone 16e"
+        case "iPhone18,1": return "iPhone 17 Pro"
+        case "iPhone18,2": return "iPhone 17 Pro Max"
+        case "iPhone18,3": return "iPhone 17"
+        case "iPhone18,4": return "iPhone Air"
+        case "iPhone18,5": return "iPhone 17e"
         default: return identifier
         }
     }

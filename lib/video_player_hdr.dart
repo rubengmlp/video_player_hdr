@@ -292,7 +292,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
   ///
   /// [httpHeaders] option allows to specify HTTP headers
   /// for the request to the [dataSource].
-  @Deprecated('Use VideoPlayerController.networkUrl instead')
+  @Deprecated('Use VideoPlayerHdrController.networkUrl instead')
   VideoPlayerHdrController.network(
     this.dataSource, {
     this.formatHint,
@@ -401,7 +401,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
 
   /// Check if the device supports HDR playback
   Future<bool> isHdrSupported() async {
-    if (!Platform.isAndroid && !Platform.isIOS) {
+    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
       throw HdrVideoError(
         'HDR support check is only available on Android and iOS',
       );
@@ -419,7 +419,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
 
   /// Get the list of supported HDR formats on this device
   Future<List<String>> getSupportedHdrFormats() async {
-    if (!Platform.isAndroid && !Platform.isIOS) {
+    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
       throw HdrVideoError(
         'HDR formats check is only available on Android and iOS',
       );
@@ -437,7 +437,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
 
   /// Check if the device supports wide color gamut
   Future<bool> isWideColorGamutSupported() async {
-    if (!Platform.isAndroid && !Platform.isIOS) {
+    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
       throw HdrVideoError(
         'Wide color gamut support check is only available on Android and iOS',
       );
@@ -455,7 +455,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
 
   /// Retrieves metadata about the video.
   Future<Map<String, dynamic>> getVideoMetadata({String? path}) async {
-    if (!Platform.isAndroid && !Platform.isIOS) {
+    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
       throw HdrVideoError(
         'Video metadata retrieval is only available on Android and iOS',
       );
