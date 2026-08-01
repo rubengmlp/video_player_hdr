@@ -51,14 +51,15 @@ import 'package:video_player_hdr/video_player_hdr.dart';
 ### Basic Example
 
 ```dart
-final controller = VideoPlayerHdrController.asset('assets/videos/hdr_video.mp4');
-await controller.initialize(
+final controller = VideoPlayerHdrController.asset(
+  'assets/videos/hdr_video.mp4',
   viewType: VideoViewType.platformView,
 );
+await controller.initialize();
 controller.play();
 ```
 
-You can choose between `platformView` and `textureView` for the `viewType` parameter. The `platformView` option enables HDR representation, while `textureView` is the type currently used by the standard `video_player` package. If no `viewType` is specified, `platformView` will be used by default.
+You can choose between `platformView` and `textureView` for the `viewType` constructor parameter. The `platformView` option enables HDR representation, while `textureView` is the default used by the standard `video_player` package. If no `viewType` is specified, `platformView` will be used by default. To change the view type of a playing video, dispose the controller and create a new one with the other `viewType`.
 
 ### HDR Features
 

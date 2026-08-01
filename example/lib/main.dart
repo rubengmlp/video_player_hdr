@@ -50,10 +50,11 @@ class _VideoPlayerHdrExampleState extends State<VideoPlayerHdrExample> {
 
   void _initializeController() {
     // HDR video included in example assets
-    _controller = VideoPlayerHdrController.asset('assets/videos/01.MOV')
-      ..initialize(
-        viewType: _currentViewType,
-      ).then((_) {
+    _controller = VideoPlayerHdrController.asset(
+      'assets/videos/01.MOV',
+      viewType: _currentViewType,
+    )
+      ..initialize().then((_) {
         setState(() {
           _isInitialized = true;
           _isChangingViewType = false;
