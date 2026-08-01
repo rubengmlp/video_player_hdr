@@ -57,6 +57,9 @@ you import both packages.
   compileSdk 36) and raises minSdk from 21 to 24, matching
   `video_player_android`, which already required API 24+ for playback.
 - Updates the example app to current Flutter tooling.
+- Removes `.gitignore` rules that covered two checked-in example files
+  (`project.pbxproj`, `Info.plist`), so `pub publish` no longer warns and the
+  published example is complete.
 
 ## 1.0.1
 - Fixes a crash in `getSupportedHdrFormats()` on Android API < 24: the native side
