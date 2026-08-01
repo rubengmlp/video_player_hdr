@@ -126,11 +126,33 @@ class _FakeClosedCaptionFile extends ClosedCaptionFile {
         start: Duration(milliseconds: 100),
         end: Duration(milliseconds: 200),
       ),
+
       const Caption(
         text: 'two',
         number: 1,
         start: Duration(milliseconds: 300),
         end: Duration(milliseconds: 400),
+      ),
+
+      /// out of order subs to test sorting
+      const Caption(
+        text: 'three',
+        number: 1,
+        start: Duration(milliseconds: 500),
+        end: Duration(milliseconds: 600),
+      ),
+
+      const Caption(
+        text: 'five',
+        number: 0,
+        start: Duration(milliseconds: 700),
+        end: Duration(milliseconds: 800),
+      ),
+      const Caption(
+        text: 'four',
+        number: 0,
+        start: Duration(milliseconds: 600),
+        end: Duration(milliseconds: 700),
       ),
     ];
   }
@@ -191,6 +213,86 @@ void main() {
           (Widget widget) => widget is Texture && widget.textureId == 102,
         ),
         findsOneWidget);
+  });
+
+  testWidgets(
+    'VideoPlayerHdr still listens for texture updates after reparenting',
+    (WidgetTester tester) async {
+      final FakeController controller = FakeController();
+      addTearDown(controller.dispose);
+      final GlobalKey videoKey = GlobalKey();
+      final Widget videoPlayer = KeyedSubtree(
+        key: videoKey,
+        child: VideoPlayerHdr(controller),
+      );
+
+      await tester.pumpWidget(videoPlayer);
+      expect(find.byType(Texture), findsNothing);
+
+      // The VideoPlayerHdr is reparented in the widget tree, before the
+      // underlying player is initialized.
+      await tester.pumpWidget(SizedBox(child: videoPlayer));
+      controller.textureId = 321;
+      controller.value = controller.value.copyWith(
+        duration: const Duration(milliseconds: 100),
+        isInitialized: true,
+      );
+
+      await tester.pump();
+      expect(
+        find.byWidgetPredicate(
+          (Widget widget) => widget is Texture && widget.textureId == 321,
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'VideoProgressIndicator still listens for controller changes after reparenting',
+    (WidgetTester tester) async {
+      final FakeController controller = FakeController();
+      addTearDown(controller.dispose);
+      final GlobalKey key = GlobalKey();
+      final Widget progressIndicator = VideoProgressIndicator(
+        key: key,
+        controller,
+        allowScrubbing: false,
+      );
+
+      controller.value = controller.value.copyWith(
+        duration: const Duration(milliseconds: 100),
+        position: const Duration(milliseconds: 50),
+        isInitialized: true,
+      );
+      await tester.pumpWidget(MaterialApp(home: progressIndicator));
+      await tester.pump();
+      await tester.pumpWidget(
+        MaterialApp(home: SizedBox(child: progressIndicator)),
+      );
+      expect((key.currentContext! as Element).dirty, isFalse);
+      // Verify that changing value dirties the widget tree.
+      controller.value = controller.value.copyWith(
+        position: const Duration(milliseconds: 100),
+      );
+      expect((key.currentContext! as Element).dirty, isTrue);
+    },
+  );
+
+  testWidgets('VideoPlayerHdr does not crash after loading 0-duration videos',
+      (WidgetTester tester) async {
+    final FakeController controller = FakeController();
+    addTearDown(controller.dispose);
+    controller.value = controller.value.copyWith(
+      duration: Duration.zero,
+      isInitialized: true,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: VideoProgressIndicator(controller, allowScrubbing: false),
+      ),
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('non-zero rotationCorrection value is used', (WidgetTester tester) async {
@@ -787,40 +889,35 @@ void main() {
         expect(recordedCaptions[300], 'two');
       });
 
-      test('works when seeking', () async {
+      test('makes sure the input captions are unsorted', () async {
         final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
           _localhostUri,
           closedCaptionFile: _loadClosedCaption(),
         );
-        addTearDown(controller.dispose);
 
         await controller.initialize();
-        expect(controller.value.position, Duration.zero);
-        expect(controller.value.caption.text, '');
+        final List<Caption> captions = (await controller.closedCaptionFile)!
+            .captions
+            .toList();
 
-        await controller.seekTo(const Duration(milliseconds: 100));
-        expect(controller.value.caption.text, 'one');
+        // Check that captions are not in sorted order.
+        var isSorted = true;
+        for (var i = 0; i < captions.length - 1; i++) {
+          if (captions[i].start.compareTo(captions[i + 1].start) > 0) {
+            isSorted = false;
+            break;
+          }
+        }
 
-        await controller.seekTo(const Duration(milliseconds: 250));
-        expect(controller.value.caption.text, '');
-
-        await controller.seekTo(const Duration(milliseconds: 300));
-        expect(controller.value.caption.text, 'two');
-
-        await controller.seekTo(const Duration(milliseconds: 301));
-        expect(controller.value.caption.text, 'two');
-
-        await controller.seekTo(const Duration(milliseconds: 500));
-        expect(controller.value.caption.text, '');
-
-        await controller.seekTo(const Duration(milliseconds: 300));
-        expect(controller.value.caption.text, 'two');
-
-        await controller.seekTo(const Duration(milliseconds: 301));
-        expect(controller.value.caption.text, 'two');
+        expect(isSorted, false, reason: 'Expected captions to be unsorted');
+        expect(
+          captions.map((Caption c) => c.text).toList(),
+          <String>['one', 'two', 'three', 'five', 'four'],
+          reason: 'Captions should be in original unsorted order',
+        );
       });
 
-      test('works when seeking with captionOffset positive', () async {
+      test('works when seeking, includes all captions', () async {
         final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
           _localhostUri,
           closedCaptionFile: _loadClosedCaption(),
@@ -828,74 +925,137 @@ void main() {
         addTearDown(controller.dispose);
 
         await controller.initialize();
-        controller.setCaptionOffset(const Duration(milliseconds: 100));
         expect(controller.value.position, Duration.zero);
         expect(controller.value.caption.text, '');
 
         await controller.seekTo(const Duration(milliseconds: 100));
         expect(controller.value.caption.text, 'one');
 
-        await controller.seekTo(const Duration(milliseconds: 101));
-        expect(controller.value.caption.text, '');
-
         await controller.seekTo(const Duration(milliseconds: 250));
-        expect(controller.value.caption.text, 'two');
-
-        await controller.seekTo(const Duration(milliseconds: 300));
-        expect(controller.value.caption.text, 'two');
-
-        await controller.seekTo(const Duration(milliseconds: 301));
-        expect(controller.value.caption.text, '');
-
-        await controller.seekTo(const Duration(milliseconds: 500));
         expect(controller.value.caption.text, '');
 
         await controller.seekTo(const Duration(milliseconds: 300));
         expect(controller.value.caption.text, 'two');
 
         await controller.seekTo(const Duration(milliseconds: 301));
-        expect(controller.value.caption.text, '');
-      });
-
-      test('works when seeking with captionOffset negative', () async {
-        final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
-          _localhostUri,
-          closedCaptionFile: _loadClosedCaption(),
-        );
-        addTearDown(controller.dispose);
-
-        await controller.initialize();
-        controller.setCaptionOffset(const Duration(milliseconds: -100));
-        expect(controller.value.position, Duration.zero);
-        expect(controller.value.caption.text, '');
-
-        await controller.seekTo(const Duration(milliseconds: 100));
-        expect(controller.value.caption.text, '');
-
-        await controller.seekTo(const Duration(milliseconds: 200));
-        expect(controller.value.caption.text, 'one');
-
-        await controller.seekTo(const Duration(milliseconds: 250));
-        expect(controller.value.caption.text, 'one');
-
-        await controller.seekTo(const Duration(milliseconds: 300));
-        expect(controller.value.caption.text, 'one');
-
-        await controller.seekTo(const Duration(milliseconds: 301));
-        expect(controller.value.caption.text, '');
+        expect(controller.value.caption.text, 'two');
 
         await controller.seekTo(const Duration(milliseconds: 400));
         expect(controller.value.caption.text, 'two');
 
-        await controller.seekTo(const Duration(milliseconds: 500));
-        expect(controller.value.caption.text, 'two');
-
-        await controller.seekTo(const Duration(milliseconds: 600));
+        await controller.seekTo(const Duration(milliseconds: 401));
         expect(controller.value.caption.text, '');
 
+        await controller.seekTo(const Duration(milliseconds: 500));
+        expect(controller.value.caption.text, 'three');
+
+        await controller.seekTo(const Duration(milliseconds: 601));
+        expect(controller.value.caption.text, 'four');
+
+        await controller.seekTo(const Duration(milliseconds: 701));
+        expect(controller.value.caption.text, 'five');
+
+        await controller.seekTo(const Duration(milliseconds: 800));
+        expect(controller.value.caption.text, 'five');
+        await controller.seekTo(const Duration(milliseconds: 801));
+        expect(controller.value.caption.text, '');
+
+        // Test going back
         await controller.seekTo(const Duration(milliseconds: 300));
-        expect(controller.value.caption.text, 'one');
+        expect(controller.value.caption.text, 'two');
       });
+
+      test(
+        'works when seeking with captionOffset positive, includes all captions',
+        () async {
+          final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
+            _localhostUri,
+            closedCaptionFile: _loadClosedCaption(),
+          );
+          addTearDown(controller.dispose);
+
+          await controller.initialize();
+          controller.setCaptionOffset(const Duration(milliseconds: 100));
+          expect(controller.value.position, Duration.zero);
+          expect(controller.value.caption.text, '');
+
+          await controller.seekTo(const Duration(milliseconds: 99));
+          expect(controller.value.caption.text, 'one');
+
+          await controller.seekTo(const Duration(milliseconds: 100));
+          expect(controller.value.caption.text, 'one');
+
+          await controller.seekTo(const Duration(milliseconds: 101));
+          expect(controller.value.caption.text, '');
+
+          await controller.seekTo(const Duration(milliseconds: 150));
+          expect(controller.value.caption.text, '');
+
+          await controller.seekTo(const Duration(milliseconds: 200));
+          expect(controller.value.caption.text, 'two');
+
+          await controller.seekTo(const Duration(milliseconds: 201));
+          expect(controller.value.caption.text, 'two');
+
+          await controller.seekTo(const Duration(milliseconds: 400));
+          expect(controller.value.caption.text, 'three');
+
+          await controller.seekTo(const Duration(milliseconds: 500));
+          expect(controller.value.caption.text, 'three');
+
+          await controller.seekTo(const Duration(milliseconds: 600));
+          expect(controller.value.caption.text, 'five');
+
+          await controller.seekTo(const Duration(milliseconds: 700));
+          expect(controller.value.caption.text, 'five');
+
+          await controller.seekTo(const Duration(milliseconds: 800));
+          expect(controller.value.caption.text, '');
+        },
+      );
+
+      test(
+        'works when seeking with captionOffset negative, includes all captions',
+        () async {
+          final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
+            _localhostUri,
+            closedCaptionFile: _loadClosedCaption(),
+          );
+          addTearDown(controller.dispose);
+
+          await controller.initialize();
+          controller.setCaptionOffset(const Duration(milliseconds: -100));
+          expect(controller.value.position, Duration.zero);
+          expect(controller.value.caption.text, '');
+
+          await controller.seekTo(const Duration(milliseconds: 100));
+          expect(controller.value.caption.text, '');
+
+          await controller.seekTo(const Duration(milliseconds: 200));
+          expect(controller.value.caption.text, 'one');
+
+          await controller.seekTo(const Duration(milliseconds: 250));
+          expect(controller.value.caption.text, 'one');
+
+          await controller.seekTo(const Duration(milliseconds: 300));
+          expect(controller.value.caption.text, 'one');
+
+          await controller.seekTo(const Duration(milliseconds: 301));
+          expect(controller.value.caption.text, '');
+
+          await controller.seekTo(const Duration(milliseconds: 400));
+          expect(controller.value.caption.text, 'two');
+
+          await controller.seekTo(const Duration(milliseconds: 500));
+          expect(controller.value.caption.text, 'two');
+
+          await controller.seekTo(const Duration(milliseconds: 600));
+          expect(controller.value.caption.text, 'three');
+
+          await controller.seekTo(const Duration(milliseconds: 700));
+          expect(controller.value.caption.text, 'three');
+        },
+      );
 
       test('setClosedCaptionFile loads caption file', () async {
         final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
@@ -928,6 +1088,269 @@ void main() {
 
         await controller.setClosedCaptionFile(null);
         expect(controller.closedCaptionFile, null);
+      });
+
+      test('binary search handles exact caption start time boundary', () async {
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
+          _localhostUri,
+          closedCaptionFile: _loadClosedCaption(),
+        );
+        addTearDown(controller.dispose);
+
+        await controller.initialize();
+
+        // Seek to exact start times - should find the caption
+        await controller.seekTo(const Duration(milliseconds: 100));
+        expect(
+          controller.value.caption.text,
+          'one',
+          reason: 'Should find caption at exact start time (100ms)',
+        );
+
+        await controller.seekTo(const Duration(milliseconds: 300));
+        expect(
+          controller.value.caption.text,
+          'two',
+          reason: 'Should find caption at exact start time (300ms)',
+        );
+
+        await controller.seekTo(const Duration(milliseconds: 500));
+        expect(
+          controller.value.caption.text,
+          'three',
+          reason: 'Should find caption at exact start time (500ms)',
+        );
+
+        // At 600ms, "three" ends and "four" starts - binary search may find either
+        await controller.seekTo(const Duration(milliseconds: 600));
+        expect(
+          <String>['three', 'four'].contains(controller.value.caption.text),
+          true,
+          reason:
+              'Should find a caption at boundary (600ms) where two captions meet (got "${controller.value.caption.text}")',
+        );
+
+        await controller.seekTo(const Duration(milliseconds: 700));
+        expect(
+          controller.value.caption.text,
+          'five',
+          reason: 'Should find caption at exact start time (700ms)',
+        );
+      });
+
+      test('binary search handles exact caption end time boundary', () async {
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
+          _localhostUri,
+          closedCaptionFile: _loadClosedCaption(),
+        );
+        addTearDown(controller.dispose);
+
+        await controller.initialize();
+
+        // Seek to exact end times - should still find the caption
+        await controller.seekTo(const Duration(milliseconds: 200));
+        expect(
+          controller.value.caption.text,
+          'one',
+          reason: 'Should find caption at exact end time (200ms)',
+        );
+
+        await controller.seekTo(const Duration(milliseconds: 400));
+        expect(
+          controller.value.caption.text,
+          'two',
+          reason: 'Should find caption at exact end time (400ms)',
+        );
+
+        // At 600ms boundary where "three" ends and "four" starts
+        await controller.seekTo(const Duration(milliseconds: 600));
+        expect(
+          <String>['three', 'four'].contains(controller.value.caption.text),
+          true,
+          reason:
+              'Should find a caption at boundary (600ms) (got "${controller.value.caption.text}")',
+        );
+
+        // At 700ms boundary where "four" ends and "five" starts
+        await controller.seekTo(const Duration(milliseconds: 700));
+        expect(
+          <String>['four', 'five'].contains(controller.value.caption.text),
+          true,
+          reason:
+              'Should find a caption at boundary (700ms) (got "${controller.value.caption.text}")',
+        );
+
+        await controller.seekTo(const Duration(milliseconds: 800));
+        expect(
+          controller.value.caption.text,
+          'five',
+          reason: 'Should find caption at exact end time (800ms)',
+        );
+
+        // One millisecond past the end should not find the caption
+        await controller.seekTo(const Duration(milliseconds: 201));
+        expect(
+          controller.value.caption.text,
+          '',
+          reason:
+              'Should not find caption one millisecond past end time (201ms)',
+        );
+
+        await controller.seekTo(const Duration(milliseconds: 801));
+        expect(
+          controller.value.caption.text,
+          '',
+          reason:
+              'Should not find caption one millisecond past end time (801ms)',
+        );
+      });
+
+      test('binary search handles gaps between captions', () async {
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
+          _localhostUri,
+          closedCaptionFile: _loadClosedCaption(),
+        );
+        addTearDown(controller.dispose);
+
+        await controller.initialize();
+
+        // Test gaps between captions where no caption should be found
+        // Gap before first caption
+        await controller.seekTo(Duration.zero);
+        expect(
+          controller.value.caption.text,
+          '',
+          reason: 'Should return empty for position before first caption',
+        );
+
+        await controller.seekTo(const Duration(milliseconds: 99));
+        expect(
+          controller.value.caption.text,
+          '',
+          reason: 'Should return empty for position before first caption',
+        );
+
+        // Gap between caption 1 (ends at 200) and caption 2 (starts at 300)
+        await controller.seekTo(const Duration(milliseconds: 250));
+        expect(
+          controller.value.caption.text,
+          '',
+          reason: 'Should return empty for gap between captions 1 and 2',
+        );
+
+        // Gap between caption 2 (ends at 400) and caption 3 (starts at 500)
+        await controller.seekTo(const Duration(milliseconds: 450));
+        expect(
+          controller.value.caption.text,
+          '',
+          reason: 'Should return empty for gap between captions 2 and 3',
+        );
+
+        // Gap after last caption
+        await controller.seekTo(const Duration(milliseconds: 900));
+        expect(
+          controller.value.caption.text,
+          '',
+          reason: 'Should return empty for position after last caption',
+        );
+      });
+
+      test('binary search works with single caption', () async {
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
+          _localhostUri,
+          closedCaptionFile: Future<ClosedCaptionFile>.value(
+            _SingleCaptionFile(),
+          ),
+        );
+        addTearDown(controller.dispose);
+
+        await controller.initialize();
+
+        // Before caption
+        await controller.seekTo(const Duration(milliseconds: 99));
+        expect(
+          controller.value.caption.text,
+          '',
+          reason: 'Should return empty before single caption',
+        );
+
+        // At start
+        await controller.seekTo(const Duration(milliseconds: 100));
+        expect(
+          controller.value.caption.text,
+          'only',
+          reason: 'Should find single caption at start',
+        );
+
+        // In middle
+        await controller.seekTo(const Duration(milliseconds: 150));
+        expect(
+          controller.value.caption.text,
+          'only',
+          reason: 'Should find single caption in middle',
+        );
+
+        // At end
+        await controller.seekTo(const Duration(milliseconds: 200));
+        expect(
+          controller.value.caption.text,
+          'only',
+          reason: 'Should find single caption at end',
+        );
+
+        // After caption
+        await controller.seekTo(const Duration(milliseconds: 201));
+        expect(
+          controller.value.caption.text,
+          '',
+          reason: 'Should return empty after single caption',
+        );
+      });
+
+      test('binary search handles overlapping captions', () async {
+        final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
+          _localhostUri,
+          closedCaptionFile: Future<ClosedCaptionFile>.value(
+            _OverlappingCaptionFile(),
+          ),
+        );
+        addTearDown(controller.dispose);
+
+        await controller.initialize();
+
+        // In first caption only
+        await controller.seekTo(const Duration(milliseconds: 100));
+        expect(
+          controller.value.caption.text,
+          'first',
+          reason: 'Should find first caption',
+        );
+
+        // In overlapping region - binary search should find one of them
+        // (the exact one depends on sort order, but it should find something)
+        await controller.seekTo(const Duration(milliseconds: 250));
+        expect(
+          <String>['first', 'second'].contains(controller.value.caption.text),
+          true,
+          reason:
+              'Should find a caption in overlapping region (got "${controller.value.caption.text}")',
+        );
+
+        // In second caption only
+        await controller.seekTo(const Duration(milliseconds: 350));
+        expect(
+          controller.value.caption.text,
+          'second',
+          reason: 'Should find second caption',
+        );
+
+        // After all captions
+        await controller.seekTo(const Duration(milliseconds: 401));
+        expect(
+          controller.value.caption.text,
+          '',
+          reason: 'Should return empty after all captions',
+        );
       });
     });
 
@@ -1073,7 +1496,7 @@ void main() {
     });
   });
 
-  group('VideoPlayerValue', () {
+  group('VideoPlayerHdrValue', () {
     test('uninitialized()', () {
       const VideoPlayerHdrValue uninitialized = VideoPlayerHdrValue.uninitialized();
 
@@ -1550,5 +1973,39 @@ class FakeVideoPlayerPlatform extends VideoPlayerPlatform {
     }
     calls.add('setWebOptions');
     webOptions[textureId] = options;
+  }
+}
+
+class _SingleCaptionFile extends ClosedCaptionFile {
+  @override
+  List<Caption> get captions {
+    return <Caption>[
+      const Caption(
+        text: 'only',
+        number: 0,
+        start: Duration(milliseconds: 100),
+        end: Duration(milliseconds: 200),
+      ),
+    ];
+  }
+}
+
+class _OverlappingCaptionFile extends ClosedCaptionFile {
+  @override
+  List<Caption> get captions {
+    return <Caption>[
+      const Caption(
+        text: 'first',
+        number: 0,
+        start: Duration(milliseconds: 100),
+        end: Duration(milliseconds: 300),
+      ),
+      const Caption(
+        text: 'second',
+        number: 1,
+        start: Duration(milliseconds: 200),
+        end: Duration(milliseconds: 400),
+      ),
+    ];
   }
 }
