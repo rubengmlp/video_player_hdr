@@ -1,3 +1,29 @@
+## 2.0.0
+Aligns the public API with upstream `video_player` 2.10+. **Breaking changes:**
+
+- `viewType` moves from `initialize()` to the `VideoPlayerHdrController`
+  constructors, matching upstream. `initialize()` no longer takes parameters.
+  Unlike upstream, the default remains `VideoViewType.platformView`, since HDR
+  output is lost through the texture path. To switch view types at runtime,
+  dispose the controller and create a new one.
+  - Before: `VideoPlayerHdrController.asset(src)..initialize(viewType: ...)`
+  - After: `VideoPlayerHdrController.asset(src, viewType: ...)..initialize()`
+- Migrates from the deprecated texture-based platform interface surface to the
+  current one: the test-visible `textureId` getter and
+  `kUninitializedTextureId` constant are renamed to `playerId` /
+  `kUninitializedPlayerId`, and the video widget is now built with
+  `buildViewWithOptions()`. This resolves the last deprecation warning against
+  `video_player_platform_interface` 6.9.0 and prepares the package for its
+  next major.
+- Code that `implements VideoPlayerHdrController` (e.g. hand-written fakes or
+  generated mocks) must add the new `viewType` getter.
+
+Not changed (deliberately): `VideoPlayerHdrController.network` remains
+deprecated-but-present (as in upstream), and the widget names shared with
+upstream (`VideoProgressIndicator`, `VideoScrubber`, `ClosedCaption`,
+`VideoProgressColors`) keep their names — use an import `hide`/`as` clause if
+you import both packages.
+
 ## 1.2.0
 - Adds audio track selection, matching upstream `video_player` 2.11.0:
   `getAudioTracks()`, `selectAudioTrack()` and `isAudioTrackSupportAvailable()`

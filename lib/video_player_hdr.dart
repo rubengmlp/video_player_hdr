@@ -293,8 +293,15 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
   /// The name of the asset is given by the [dataSource] argument and must not be
   /// null. The [package] argument must be non-null when the asset comes from a
   /// package and null otherwise.
+  /// The [viewType] option allows the caller to request a specific display
+  /// mode for the video. Platforms that do not support the requested view type
+  /// will ignore this parameter. Defaults to [VideoViewType.platformView],
+  /// which is required for HDR output.
   VideoPlayerHdrController.asset(this.dataSource,
-      {this.package, Future<ClosedCaptionFile>? closedCaptionFile, this.videoPlayerOptions})
+      {this.package,
+      Future<ClosedCaptionFile>? closedCaptionFile,
+      this.videoPlayerOptions,
+      this.viewType = VideoViewType.platformView})
       : _closedCaptionFileFuture = closedCaptionFile,
         dataSourceType = DataSourceType.asset,
         formatHint = null,
@@ -317,12 +324,17 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
   /// [httpHeaders] option allows to specify HTTP headers
   /// for the request to the [dataSource].
   @Deprecated('Use VideoPlayerHdrController.networkUrl instead')
+  /// The [viewType] option allows the caller to request a specific display
+  /// mode for the video. Platforms that do not support the requested view type
+  /// will ignore this parameter. Defaults to [VideoViewType.platformView],
+  /// which is required for HDR output.
   VideoPlayerHdrController.network(
     this.dataSource, {
     this.formatHint,
     Future<ClosedCaptionFile>? closedCaptionFile,
     this.videoPlayerOptions,
     this.httpHeaders = const <String, String>{},
+    this.viewType = VideoViewType.platformView,
   })  : _closedCaptionFileFuture = closedCaptionFile,
         dataSourceType = DataSourceType.network,
         package = null,
@@ -343,12 +355,17 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
   ///
   /// [httpHeaders] option allows to specify HTTP headers
   /// for the request to the [dataSource].
+  /// The [viewType] option allows the caller to request a specific display
+  /// mode for the video. Platforms that do not support the requested view type
+  /// will ignore this parameter. Defaults to [VideoViewType.platformView],
+  /// which is required for HDR output.
   VideoPlayerHdrController.networkUrl(
     Uri url, {
     this.formatHint,
     Future<ClosedCaptionFile>? closedCaptionFile,
     this.videoPlayerOptions,
     this.httpHeaders = const <String, String>{},
+    this.viewType = VideoViewType.platformView,
   })  : _closedCaptionFileFuture = closedCaptionFile,
         dataSource = url.toString(),
         dataSourceType = DataSourceType.network,
@@ -365,10 +382,15 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
   ///
   /// This will load the file from a file:// URI constructed from [file]'s path.
   /// [httpHeaders] option allows to specify HTTP headers, mainly used for hls files like (m3u8).
+  /// The [viewType] option allows the caller to request a specific display
+  /// mode for the video. Platforms that do not support the requested view type
+  /// will ignore this parameter. Defaults to [VideoViewType.platformView],
+  /// which is required for HDR output.
   VideoPlayerHdrController.file(File file,
       {Future<ClosedCaptionFile>? closedCaptionFile,
       this.videoPlayerOptions,
-      this.httpHeaders = const <String, String>{}})
+      this.httpHeaders = const <String, String>{},
+      this.viewType = VideoViewType.platformView})
       : _closedCaptionFileFuture = closedCaptionFile,
         dataSource = Uri.file(file.absolute.path).toString(),
         dataSourceType = DataSourceType.file,
@@ -386,10 +408,16 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
   ///
   /// This will load the video from the input content-URI.
   /// This is supported on Android only.
+  /// The [viewType] option allows the caller to request a specific display
+  /// mode for the video. Platforms that do not support the requested view type
+  /// will ignore this parameter. Defaults to [VideoViewType.platformView],
+  /// which is required for HDR output.
   VideoPlayerHdrController.contentUri(Uri contentUri,
-      {Future<ClosedCaptionFile>? closedCaptionFile, this.videoPlayerOptions})
+      {Future<ClosedCaptionFile>? closedCaptionFile,
+      this.videoPlayerOptions,
+      this.viewType = VideoViewType.platformView})
       : assert(defaultTargetPlatform == TargetPlatform.android,
-            'VideoPlayerController.contentUri is only supported on Android.'),
+            'VideoPlayerHdrController.contentUri is only supported on Android.'),
         _closedCaptionFileFuture = closedCaptionFile,
         dataSource = contentUri.toString(),
         dataSourceType = DataSourceType.contentUri,
@@ -427,6 +455,14 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
   /// Only set for [asset] videos. The package that the asset was loaded from.
   final String? package;
 
+  /// The type of view used to display the video.
+  ///
+  /// Unlike upstream `video_player` (which defaults to
+  /// [VideoViewType.textureView]), this defaults to
+  /// [VideoViewType.platformView]: HDR output is lost through the texture
+  /// path, so a platform view is required to actually display HDR content.
+  final VideoViewType viewType;
+
   Future<ClosedCaptionFile>? _closedCaptionFileFuture;
   ClosedCaptionFile? _closedCaptionFile;
   List<Caption>? _sortedCaptions;
@@ -436,15 +472,15 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
   StreamSubscription<dynamic>? _eventSubscription;
   _VideoAppLifeCycleObserver? _lifeCycleObserver;
 
-  /// The id of a texture that hasn't been initialized.
+  /// The id of a player that hasn't been initialized.
   @visibleForTesting
-  static const int kUninitializedTextureId = -1;
-  int _textureId = kUninitializedTextureId;
+  static const int kUninitializedPlayerId = -1;
+  int _playerId = kUninitializedPlayerId;
 
   /// This is just exposed for testing. It shouldn't be used by anyone depending
   /// on the plugin.
   @visibleForTesting
-  int get textureId => _textureId;
+  int get playerId => _playerId;
 
   static const MethodChannel _hdrChannel = MethodChannel('video_player_hdr');
 
@@ -533,9 +569,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
   }
 
   /// Attempts to open the given [dataSource] and load metadata about the video.
-  Future<void> initialize({
-    VideoViewType viewType = VideoViewType.platformView,
-  }) async {
+  Future<void> initialize() async {
     final bool allowBackgroundPlayback = videoPlayerOptions?.allowBackgroundPlayback ?? false;
     if (!allowBackgroundPlayback) {
       _lifeCycleObserver = _VideoAppLifeCycleObserver(this);
@@ -575,23 +609,23 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
       await _videoPlayerPlatform.setMixWithOthers(videoPlayerOptions!.mixWithOthers);
     }
 
-    _textureId = (await _videoPlayerPlatform.createWithOptions(VideoCreationOptions(
+    _playerId = (await _videoPlayerPlatform.createWithOptions(VideoCreationOptions(
             dataSource: dataSourceDescription,
             viewType: viewType,
             videoPlayerOptions: videoPlayerOptions))) ??
-        kUninitializedTextureId;
+        kUninitializedPlayerId;
     _creatingCompleter!.complete(null);
     final Completer<void> initializingCompleter = Completer<void>();
 
     await _videoPlayerPlatform.setPreventsDisplaySleepDuringVideoPlayback(
-      _textureId,
+      _playerId,
       value.preventsDisplaySleepDuringVideoPlayback,
     );
 
     // Apply the web-specific options
     if (kIsWeb && videoPlayerOptions?.webOptions != null) {
       await _videoPlayerPlatform.setWebOptions(
-        _textureId,
+        _playerId,
         videoPlayerOptions!.webOptions!,
       );
     }
@@ -613,13 +647,13 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
           );
           assert(
             !initializingCompleter.isCompleted,
-            'VideoPlayerController already initialized. This is typically a '
+            'VideoPlayerHdrController already initialized. This is typically a '
             'sign that an implementation of the VideoPlayerPlatform '
             '(${_videoPlayerPlatform.runtimeType}) has a bug and is sending '
             'more than one initialized event per instance.',
           );
           if (initializingCompleter.isCompleted) {
-            throw StateError('VideoPlayerController already initialized');
+            throw StateError('VideoPlayerHdrController already initialized');
           }
           initializingCompleter.complete(null);
           _applyLooping();
@@ -663,7 +697,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
     }
 
     _eventSubscription = _videoPlayerPlatform
-        .videoEventsFor(_textureId)
+        .videoEventsFor(_playerId)
         .listen(eventListener, onError: errorListener);
     return initializingCompleter.future;
   }
@@ -680,7 +714,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
         _isDisposed = true;
         _timer?.cancel();
         await _eventSubscription?.cancel();
-        await _videoPlayerPlatform.dispose(_textureId);
+        await _videoPlayerPlatform.dispose(_playerId);
       }
       _lifeCycleObserver?.dispose();
     }
@@ -727,7 +761,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
       return;
     }
     await _videoPlayerPlatform.setPreventsDisplaySleepDuringVideoPlayback(
-      _textureId,
+      _playerId,
       value.preventsDisplaySleepDuringVideoPlayback,
     );
   }
@@ -742,7 +776,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
     if (_isDisposedOrNotInitialized) {
       return;
     }
-    await _videoPlayerPlatform.setLooping(_textureId, value.isLooping);
+    await _videoPlayerPlatform.setLooping(_playerId, value.isLooping);
   }
 
   Future<void> _applyPlayPause() async {
@@ -750,7 +784,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
       return;
     }
     if (value.isPlaying) {
-      await _videoPlayerPlatform.play(_textureId);
+      await _videoPlayerPlatform.play(_playerId);
 
       _timer?.cancel();
       _timer = Timer.periodic(
@@ -773,7 +807,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
       await _applyPlaybackSpeed();
     } else {
       _timer?.cancel();
-      await _videoPlayerPlatform.pause(_textureId);
+      await _videoPlayerPlatform.pause(_playerId);
     }
   }
 
@@ -781,7 +815,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
     if (_isDisposedOrNotInitialized) {
       return;
     }
-    await _videoPlayerPlatform.setVolume(_textureId, value.volume);
+    await _videoPlayerPlatform.setVolume(_playerId, value.volume);
   }
 
   Future<void> _applyPlaybackSpeed() async {
@@ -797,7 +831,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
     }
 
     await _videoPlayerPlatform.setPlaybackSpeed(
-      _textureId,
+      _playerId,
       value.playbackSpeed,
     );
   }
@@ -807,7 +841,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
     if (_isDisposed) {
       return null;
     }
-    return _videoPlayerPlatform.getPosition(_textureId);
+    return _videoPlayerPlatform.getPosition(_playerId);
   }
 
   /// Sets the video's current timestamp to be at [moment]. The next
@@ -824,7 +858,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
     } else if (position < Duration.zero) {
       position = Duration.zero;
     }
-    await _videoPlayerPlatform.seekTo(_textureId, position);
+    await _videoPlayerPlatform.seekTo(_playerId, position);
     _updatePosition(position);
   }
 
@@ -1004,7 +1038,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
     if (!value.isInitialized) {
       return <VideoAudioTrack>[];
     }
-    return _videoPlayerPlatform.getAudioTracks(_textureId);
+    return _videoPlayerPlatform.getAudioTracks(_playerId);
   }
 
   /// Selects which audio track is chosen for playback from its [trackId]
@@ -1020,7 +1054,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
     }
     // The platform implementation (e.g., Android) will wait for the track
     // selection to complete by listening to platform-specific events
-    await _videoPlayerPlatform.selectAudioTrack(_textureId, trackId);
+    await _videoPlayerPlatform.selectAudioTrack(_playerId, trackId);
   }
 
   /// Returns whether audio track selection is supported on this platform.
@@ -1046,7 +1080,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
     if (!value.isInitialized) {
       return <VideoTrack>[];
     }
-    return _videoPlayerPlatform.getVideoTracks(_textureId);
+    return _videoPlayerPlatform.getVideoTracks(_playerId);
   }
 
   /// Selects which video track (quality variant) is used for playback.
@@ -1059,7 +1093,7 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
     if (_isDisposedOrNotInitialized) {
       throw StateError('VideoPlayerHdrController is disposed or not initialized');
     }
-    await _videoPlayerPlatform.selectVideoTrack(_textureId, track);
+    await _videoPlayerPlatform.selectVideoTrack(_playerId, track);
   }
 
   /// Returns whether video track selection is supported on this platform.
@@ -1114,13 +1148,13 @@ class VideoPlayerHdr extends StatefulWidget {
 }
 
 class _VideoPlayerHdrState extends State<VideoPlayerHdr> {
-  late int _textureId;
+  late int _playerId;
 
   void _controllerDidUpdateValue() {
-    final int newTextureId = widget.controller.textureId;
-    if (newTextureId != _textureId) {
+    final int newPlayerId = widget.controller.playerId;
+    if (newPlayerId != _playerId) {
       setState(() {
-        _textureId = newTextureId;
+        _playerId = newPlayerId;
       });
     }
   }
@@ -1128,8 +1162,8 @@ class _VideoPlayerHdrState extends State<VideoPlayerHdr> {
   @override
   void initState() {
     super.initState();
-    _textureId = widget.controller.textureId;
-    // Need to listen for initialization events since the actual texture ID
+    _playerId = widget.controller.playerId;
+    // Need to listen for initialization events since the actual player ID
     // becomes available after asynchronous initialization finishes.
     widget.controller.addListener(_controllerDidUpdateValue);
   }
@@ -1138,7 +1172,7 @@ class _VideoPlayerHdrState extends State<VideoPlayerHdr> {
   void didUpdateWidget(VideoPlayerHdr oldWidget) {
     super.didUpdateWidget(oldWidget);
     oldWidget.controller.removeListener(_controllerDidUpdateValue);
-    _textureId = widget.controller.textureId;
+    _playerId = widget.controller.playerId;
     widget.controller.addListener(_controllerDidUpdateValue);
   }
 
@@ -1150,11 +1184,13 @@ class _VideoPlayerHdrState extends State<VideoPlayerHdr> {
 
   @override
   Widget build(BuildContext context) {
-    return _textureId == VideoPlayerHdrController.kUninitializedTextureId
+    return _playerId == VideoPlayerHdrController.kUninitializedPlayerId
         ? Container()
         : _VideoPlayerWithRotation(
             rotation: widget.controller.value.rotationCorrection,
-            child: _videoPlayerPlatform.buildView(_textureId),
+            child: _videoPlayerPlatform.buildViewWithOptions(
+              VideoViewOptions(playerId: _playerId),
+            ),
           );
   }
 }
