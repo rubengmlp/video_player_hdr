@@ -18,10 +18,12 @@ export 'package:video_player_platform_interface/video_player_platform_interface.
     show
         DataSourceType,
         DurationRange,
+        VideoAudioTrack,
         VideoFormat,
         VideoPlayerOptions,
         VideoPlayerWebOptions,
         VideoPlayerWebOptionsControls,
+        VideoTrack,
         VideoViewType;
 
 export 'src/closed_caption_file.dart';
@@ -71,6 +73,7 @@ class VideoPlayerHdrValue {
     this.rotationCorrection = 0,
     this.errorDescription,
     this.isCompleted = false,
+    this.preventsDisplaySleepDuringVideoPlayback = true,
   });
 
   /// Returns an instance for a video that hasn't been loaded.
@@ -132,6 +135,13 @@ class VideoPlayerHdrValue {
   /// Does not update if video is looping.
   final bool isCompleted;
 
+  /// Whether the screen is prevented from sleeping during video playback.
+  ///
+  /// Defaults to `true`.
+  ///
+  /// This is currently only supported on iOS and macOS.
+  final bool preventsDisplaySleepDuringVideoPlayback;
+
   /// The [size] of the currently loaded video.
   final Size size;
 
@@ -180,6 +190,7 @@ class VideoPlayerHdrValue {
     int? rotationCorrection,
     String? errorDescription = _defaultErrorDescription,
     bool? isCompleted,
+    bool? preventsDisplaySleepDuringVideoPlayback,
   }) {
     return VideoPlayerHdrValue(
       duration: duration ?? this.duration,
@@ -198,6 +209,8 @@ class VideoPlayerHdrValue {
       errorDescription:
           errorDescription != _defaultErrorDescription ? errorDescription : this.errorDescription,
       isCompleted: isCompleted ?? this.isCompleted,
+      preventsDisplaySleepDuringVideoPlayback: preventsDisplaySleepDuringVideoPlayback ??
+          this.preventsDisplaySleepDuringVideoPlayback,
     );
   }
 
@@ -217,7 +230,8 @@ class VideoPlayerHdrValue {
         'volume: $volume, '
         'playbackSpeed: $playbackSpeed, '
         'errorDescription: $errorDescription, '
-        'isCompleted: $isCompleted),';
+        'isCompleted: $isCompleted, '
+        'preventsDisplaySleepDuringVideoPlayback: $preventsDisplaySleepDuringVideoPlayback),';
   }
 
   @override
@@ -239,7 +253,8 @@ class VideoPlayerHdrValue {
           size == other.size &&
           rotationCorrection == other.rotationCorrection &&
           isInitialized == other.isInitialized &&
-          isCompleted == other.isCompleted;
+          isCompleted == other.isCompleted &&
+          preventsDisplaySleepDuringVideoPlayback == other.preventsDisplaySleepDuringVideoPlayback;
 
   @override
   int get hashCode => Object.hash(
@@ -258,6 +273,7 @@ class VideoPlayerHdrValue {
         rotationCorrection,
         isInitialized,
         isCompleted,
+        preventsDisplaySleepDuringVideoPlayback,
       );
 }
 
@@ -283,7 +299,13 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
         dataSourceType = DataSourceType.asset,
         formatHint = null,
         httpHeaders = const <String, String>{},
-        super(const VideoPlayerHdrValue(duration: Duration.zero));
+        super(
+          VideoPlayerHdrValue(
+            duration: Duration.zero,
+            preventsDisplaySleepDuringVideoPlayback:
+                videoPlayerOptions?.preventsDisplaySleepDuringVideoPlayback ?? true,
+          ),
+        );
 
   /// Constructs a [VideoPlayerHdrController] playing a network video.
   ///
@@ -304,7 +326,13 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
   })  : _closedCaptionFileFuture = closedCaptionFile,
         dataSourceType = DataSourceType.network,
         package = null,
-        super(const VideoPlayerHdrValue(duration: Duration.zero));
+        super(
+          VideoPlayerHdrValue(
+            duration: Duration.zero,
+            preventsDisplaySleepDuringVideoPlayback:
+                videoPlayerOptions?.preventsDisplaySleepDuringVideoPlayback ?? true,
+          ),
+        );
 
   /// Constructs a [VideoPlayerHdrController] playing a network video.
   ///
@@ -325,7 +353,13 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
         dataSource = url.toString(),
         dataSourceType = DataSourceType.network,
         package = null,
-        super(const VideoPlayerHdrValue(duration: Duration.zero));
+        super(
+          VideoPlayerHdrValue(
+            duration: Duration.zero,
+            preventsDisplaySleepDuringVideoPlayback:
+                videoPlayerOptions?.preventsDisplaySleepDuringVideoPlayback ?? true,
+          ),
+        );
 
   /// Constructs a [VideoPlayerHdrController] playing a video from a file.
   ///
@@ -340,7 +374,13 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
         dataSourceType = DataSourceType.file,
         package = null,
         formatHint = null,
-        super(const VideoPlayerHdrValue(duration: Duration.zero));
+        super(
+          VideoPlayerHdrValue(
+            duration: Duration.zero,
+            preventsDisplaySleepDuringVideoPlayback:
+                videoPlayerOptions?.preventsDisplaySleepDuringVideoPlayback ?? true,
+          ),
+        );
 
   /// Constructs a [VideoPlayerHdrController] playing a video from a contentUri.
   ///
@@ -356,7 +396,13 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
         package = null,
         formatHint = null,
         httpHeaders = const <String, String>{},
-        super(const VideoPlayerHdrValue(duration: Duration.zero));
+        super(
+          VideoPlayerHdrValue(
+            duration: Duration.zero,
+            preventsDisplaySleepDuringVideoPlayback:
+                videoPlayerOptions?.preventsDisplaySleepDuringVideoPlayback ?? true,
+          ),
+        );
 
   /// The URI to the video file. This will be in different formats depending on
   /// the [DataSourceType] of the original video.
@@ -529,11 +575,18 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
       await _videoPlayerPlatform.setMixWithOthers(videoPlayerOptions!.mixWithOthers);
     }
 
-    _textureId = (await _videoPlayerPlatform.createWithOptions(
-            VideoCreationOptions(dataSource: dataSourceDescription, viewType: viewType))) ??
+    _textureId = (await _videoPlayerPlatform.createWithOptions(VideoCreationOptions(
+            dataSource: dataSourceDescription,
+            viewType: viewType,
+            videoPlayerOptions: videoPlayerOptions))) ??
         kUninitializedTextureId;
     _creatingCompleter!.complete(null);
     final Completer<void> initializingCompleter = Completer<void>();
+
+    await _videoPlayerPlatform.setPreventsDisplaySleepDuringVideoPlayback(
+      _textureId,
+      value.preventsDisplaySleepDuringVideoPlayback,
+    );
 
     // Apply the web-specific options
     if (kIsWeb && videoPlayerOptions?.webOptions != null) {
@@ -655,6 +708,28 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
   Future<void> setLooping(bool looping) async {
     value = value.copyWith(isLooping: looping);
     await _applyLooping();
+  }
+
+  /// Sets whether the screen is prevented from sleeping during video playback.
+  ///
+  /// See also [VideoPlayerHdrValue.preventsDisplaySleepDuringVideoPlayback].
+  Future<void> setPreventsDisplaySleepDuringVideoPlayback(
+    bool preventsDisplaySleepDuringVideoPlayback,
+  ) async {
+    value = value.copyWith(
+      preventsDisplaySleepDuringVideoPlayback: preventsDisplaySleepDuringVideoPlayback,
+    );
+    await _applyPreventsDisplaySleepDuringVideoPlayback();
+  }
+
+  Future<void> _applyPreventsDisplaySleepDuringVideoPlayback() async {
+    if (_isDisposedOrNotInitialized) {
+      return;
+    }
+    await _videoPlayerPlatform.setPreventsDisplaySleepDuringVideoPlayback(
+      _textureId,
+      value.preventsDisplaySleepDuringVideoPlayback,
+    );
   }
 
   /// Pauses the video.
@@ -913,6 +988,86 @@ class VideoPlayerHdrController extends ValueNotifier<VideoPlayerHdrValue> {
     if (!_isDisposed) {
       super.removeListener(listener);
     }
+  }
+
+  /// Gets the available audio tracks for the video.
+  ///
+  /// Returns a list of [VideoAudioTrack] objects containing metadata about
+  /// each available audio track. The list may be empty if no audio tracks
+  /// are available or if the video is not initialized.
+  ///
+  /// Throws an error if the video player is disposed.
+  Future<List<VideoAudioTrack>> getAudioTracks() async {
+    if (_isDisposed) {
+      throw StateError('VideoPlayerHdrController is disposed');
+    }
+    if (!value.isInitialized) {
+      return <VideoAudioTrack>[];
+    }
+    return _videoPlayerPlatform.getAudioTracks(_textureId);
+  }
+
+  /// Selects which audio track is chosen for playback from its [trackId]
+  ///
+  /// The [trackId] should match the ID of one of the tracks returned by
+  /// [getAudioTracks]. If the track ID is not found or invalid, the
+  /// platform may ignore the request or throw an exception.
+  ///
+  /// Throws an error if the video player is disposed or not initialized.
+  Future<void> selectAudioTrack(String trackId) async {
+    if (_isDisposedOrNotInitialized) {
+      throw StateError('VideoPlayerHdrController is disposed or not initialized');
+    }
+    // The platform implementation (e.g., Android) will wait for the track
+    // selection to complete by listening to platform-specific events
+    await _videoPlayerPlatform.selectAudioTrack(_textureId, trackId);
+  }
+
+  /// Returns whether audio track selection is supported on this platform.
+  ///
+  /// Returns `true` if [getAudioTracks] and [selectAudioTrack] are supported,
+  /// `false` otherwise (e.g. on web).
+  bool isAudioTrackSupportAvailable() {
+    return _videoPlayerPlatform.isAudioTrackSupportAvailable();
+  }
+
+  /// Gets the available video tracks (quality variants) for the video.
+  ///
+  /// For HLS/DASH streams, each [VideoTrack] represents a different quality
+  /// level (e.g., 1080p, 720p, 480p) — including HDR variants where present.
+  /// Returns an empty list if no tracks are available or the video is not
+  /// initialized.
+  ///
+  /// Throws an error if the video player is disposed.
+  Future<List<VideoTrack>> getVideoTracks() async {
+    if (_isDisposed) {
+      throw StateError('VideoPlayerHdrController is disposed');
+    }
+    if (!value.isInitialized) {
+      return <VideoTrack>[];
+    }
+    return _videoPlayerPlatform.getVideoTracks(_textureId);
+  }
+
+  /// Selects which video track (quality variant) is used for playback.
+  ///
+  /// The [track] should be one of the tracks returned by [getVideoTracks].
+  /// Passing `null` restores automatic track selection (adaptive streaming).
+  ///
+  /// Throws an error if the video player is disposed or not initialized.
+  Future<void> selectVideoTrack(VideoTrack? track) async {
+    if (_isDisposedOrNotInitialized) {
+      throw StateError('VideoPlayerHdrController is disposed or not initialized');
+    }
+    await _videoPlayerPlatform.selectVideoTrack(_textureId, track);
+  }
+
+  /// Returns whether video track selection is supported on this platform.
+  ///
+  /// Returns `true` if [getVideoTracks] and [selectVideoTrack] are supported,
+  /// `false` otherwise (e.g. on web).
+  bool isVideoTrackSupportAvailable() {
+    return _videoPlayerPlatform.isVideoTrackSupportAvailable();
   }
 
   bool get _isDisposedOrNotInitialized => _isDisposed || !value.isInitialized;

@@ -69,6 +69,54 @@ class FakeController extends ValueNotifier<VideoPlayerHdrValue>
   Future<void> setLooping(bool looping) async {}
 
   @override
+  Future<void> setPreventsDisplaySleepDuringVideoPlayback(bool prevents) async {}
+
+  @override
+  Future<List<VideoAudioTrack>> getAudioTracks() async {
+    return <VideoAudioTrack>[
+      const VideoAudioTrack(id: 'track_1', label: 'English', language: 'en', isSelected: true),
+      const VideoAudioTrack(
+        id: 'track_2',
+        label: 'Spanish',
+        language: 'es',
+        isSelected: false,
+        bitrate: 128000,
+        sampleRate: 44100,
+        channelCount: 2,
+        codec: 'aac',
+      ),
+    ];
+  }
+
+  @override
+  Future<void> selectAudioTrack(String trackId) async {
+    // Store the selected track ID for verification in tests
+    selectedAudioTrackId = trackId;
+  }
+
+  @override
+  bool isAudioTrackSupportAvailable() => true;
+
+  String? selectedAudioTrackId;
+
+  @override
+  Future<List<VideoTrack>> getVideoTracks() async {
+    return <VideoTrack>[
+      const VideoTrack(id: '0_0', isSelected: true, label: '1080p', width: 1920, height: 1080),
+    ];
+  }
+
+  @override
+  Future<void> selectVideoTrack(VideoTrack? track) async {
+    selectedVideoTrack = track;
+  }
+
+  @override
+  bool isVideoTrackSupportAvailable() => true;
+
+  VideoTrack? selectedVideoTrack;
+
+  @override
   VideoFormat? get formatHint => null;
 
   @override
@@ -1585,7 +1633,8 @@ void main() {
           'volume: 0.5, '
           'playbackSpeed: 1.5, '
           'errorDescription: null, '
-          'isCompleted: false),');
+          'isCompleted: false, '
+          'preventsDisplaySleepDuringVideoPlayback: true),');
     });
 
     group('copyWith()', () {
@@ -1662,6 +1711,181 @@ void main() {
     });
   });
 
+  group('audio tracks', () {
+    test('getAudioTracks returns list of tracks', () async {
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+      final List<VideoAudioTrack> tracks = await controller.getAudioTracks();
+
+      expect(tracks.length, 3);
+      expect(tracks[0].id, 'track_1');
+      expect(tracks[0].label, 'English');
+      expect(tracks[0].language, 'en');
+      expect(tracks[0].isSelected, true);
+      expect(tracks[0].bitrate, null);
+      expect(tracks[0].sampleRate, null);
+      expect(tracks[0].channelCount, null);
+      expect(tracks[0].codec, null);
+
+      expect(tracks[1].id, 'track_2');
+      expect(tracks[1].label, 'Spanish');
+      expect(tracks[1].language, 'es');
+      expect(tracks[1].isSelected, false);
+      expect(tracks[1].bitrate, 128000);
+      expect(tracks[1].sampleRate, 44100);
+      expect(tracks[1].channelCount, 2);
+      expect(tracks[1].codec, 'aac');
+
+      expect(tracks[2].id, 'track_3');
+      expect(tracks[2].label, 'French');
+      expect(tracks[2].language, 'fr');
+      expect(tracks[2].isSelected, false);
+      expect(tracks[2].bitrate, 96000);
+      expect(tracks[2].sampleRate, null);
+      expect(tracks[2].channelCount, null);
+      expect(tracks[2].codec, null);
+    });
+
+    test('getAudioTracks before initialization returns empty list', () async {
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
+      addTearDown(controller.dispose);
+
+      final List<VideoAudioTrack> tracks = await controller.getAudioTracks();
+      expect(tracks, isEmpty);
+    });
+
+    test('selectAudioTrack works with valid track ID', () async {
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+      await controller.selectAudioTrack('track_2');
+
+      // Verify the platform recorded the selection
+      expect(fakeVideoPlayerPlatform.selectedAudioTrackIds[controller.textureId], 'track_2');
+    });
+
+    test('selectAudioTrack before initialization throws', () async {
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
+      addTearDown(controller.dispose);
+
+      expect(() => controller.selectAudioTrack('track_1'), throwsA(isA<StateError>()));
+    });
+
+    test('selectAudioTrack with empty track ID', () async {
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+      await controller.selectAudioTrack('');
+
+      expect(fakeVideoPlayerPlatform.selectedAudioTrackIds[controller.textureId], '');
+    });
+
+    test('multiple track selections update correctly', () async {
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+
+      await controller.selectAudioTrack('track_1');
+      expect(fakeVideoPlayerPlatform.selectedAudioTrackIds[controller.textureId], 'track_1');
+
+      await controller.selectAudioTrack('track_3');
+      expect(fakeVideoPlayerPlatform.selectedAudioTrackIds[controller.textureId], 'track_3');
+    });
+
+    test('isAudioTrackSupportAvailable delegates to the platform', () {
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
+      addTearDown(controller.dispose);
+
+      expect(controller.isAudioTrackSupportAvailable(), true);
+      expect(fakeVideoPlayerPlatform.calls.contains('isAudioTrackSupportAvailable'), true);
+    });
+  });
+
+  group('video tracks', () {
+    test('getVideoTracks returns list of tracks', () async {
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+      final List<VideoTrack> tracks = await controller.getVideoTracks();
+
+      expect(tracks.length, 2);
+      expect(tracks[0].id, '0_0');
+      expect(tracks[0].label, '1080p');
+      expect(tracks[0].isSelected, true);
+      expect(tracks[0].bitrate, 8000000);
+      expect(tracks[0].width, 1920);
+      expect(tracks[0].height, 1080);
+
+      expect(tracks[1].id, '0_1');
+      expect(tracks[1].label, '720p');
+      expect(tracks[1].isSelected, false);
+    });
+
+    test('getVideoTracks before initialization returns empty list', () async {
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
+      addTearDown(controller.dispose);
+
+      final List<VideoTrack> tracks = await controller.getVideoTracks();
+      expect(tracks, isEmpty);
+    });
+
+    test('selectVideoTrack records the selected track', () async {
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+      final List<VideoTrack> tracks = await controller.getVideoTracks();
+      await controller.selectVideoTrack(tracks[1]);
+
+      expect(fakeVideoPlayerPlatform.selectedVideoTracks[controller.textureId], tracks[1]);
+    });
+
+    test('selectVideoTrack with null restores automatic selection', () async {
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+      await controller.selectVideoTrack(null);
+
+      expect(fakeVideoPlayerPlatform.selectedVideoTracks.containsKey(controller.textureId), true);
+      expect(fakeVideoPlayerPlatform.selectedVideoTracks[controller.textureId], null);
+    });
+
+    test('selectVideoTrack before initialization throws', () async {
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
+      addTearDown(controller.dispose);
+
+      expect(() => controller.selectVideoTrack(null), throwsA(isA<StateError>()));
+    });
+
+    test('isVideoTrackSupportAvailable delegates to the platform', () {
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
+      addTearDown(controller.dispose);
+
+      expect(controller.isVideoTrackSupportAvailable(), true);
+      expect(fakeVideoPlayerPlatform.calls.contains('isVideoTrackSupportAvailable'), true);
+    });
+  });
+
   group('VideoPlayerOptions', () {
     test('setMixWithOthers', () async {
       final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
@@ -1672,6 +1896,53 @@ void main() {
 
       await controller.initialize();
       expect(controller.videoPlayerOptions!.mixWithOthers, true);
+    });
+
+    test('setPreventsDisplaySleepDuringVideoPlayback', () async {
+      final VideoPlayerHdrController controller =
+          VideoPlayerHdrController.networkUrl(_localhostUri);
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+      expect(controller.value.preventsDisplaySleepDuringVideoPlayback, true);
+
+      // initialize() already forwards the initial value; clear so the
+      // assertion below exercises the public setter, not initialization.
+      fakeVideoPlayerPlatform.calls.clear();
+
+      await controller.setPreventsDisplaySleepDuringVideoPlayback(false);
+      expect(controller.value.preventsDisplaySleepDuringVideoPlayback, false);
+
+      expect(
+        fakeVideoPlayerPlatform.calls.contains('setPreventsDisplaySleepDuringVideoPlayback'),
+        true,
+      );
+    });
+
+    test('preventsDisplaySleepDuringVideoPlayback false via options', () async {
+      final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
+        _localhostUri,
+        videoPlayerOptions: VideoPlayerOptions(preventsDisplaySleepDuringVideoPlayback: false),
+      );
+      addTearDown(controller.dispose);
+
+      expect(controller.value.preventsDisplaySleepDuringVideoPlayback, false);
+      await controller.initialize();
+      expect(controller.value.preventsDisplaySleepDuringVideoPlayback, false);
+    });
+
+    test('passes backBufferDurationMs through to the platform', () async {
+      final VideoPlayerHdrController controller = VideoPlayerHdrController.networkUrl(
+        _localhostUri,
+        videoPlayerOptions: VideoPlayerOptions(backBufferDurationMs: 5000),
+      );
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+      expect(
+        fakeVideoPlayerPlatform.creationOptions.last.videoPlayerOptions?.backBufferDurationMs,
+        5000,
+      );
     });
 
     test('true allowBackgroundPlayback continues playback', () async {
@@ -1880,11 +2151,20 @@ class FakeVideoPlayerPlatform extends VideoPlayerPlatform {
   Completer<bool> initialized = Completer<bool>();
   List<String> calls = <String>[];
   List<DataSource> dataSources = <DataSource>[];
+  List<VideoCreationOptions> creationOptions = <VideoCreationOptions>[];
   final Map<int, StreamController<VideoEvent>> streams = <int, StreamController<VideoEvent>>{};
   bool forceInitError = false;
   int nextTextureId = 0;
   final Map<int, Duration> _positions = <int, Duration>{};
   final Map<int, VideoPlayerWebOptions> webOptions = <int, VideoPlayerWebOptions>{};
+  final Map<int, String> selectedAudioTrackIds = <int, String>{};
+  final Map<int, VideoTrack?> selectedVideoTracks = <int, VideoTrack?>{};
+
+  @override
+  Future<int?> createWithOptions(VideoCreationOptions options) async {
+    creationOptions.add(options);
+    return create(options.dataSource);
+  }
 
   @override
   Future<int?> create(DataSource dataSource) async {
@@ -1973,6 +2253,91 @@ class FakeVideoPlayerPlatform extends VideoPlayerPlatform {
     }
     calls.add('setWebOptions');
     webOptions[textureId] = options;
+  }
+
+  @override
+  Future<void> setPreventsDisplaySleepDuringVideoPlayback(
+    int textureId,
+    bool preventsDisplaySleepDuringVideoPlayback,
+  ) async {
+    calls.add('setPreventsDisplaySleepDuringVideoPlayback');
+  }
+
+  @override
+  Future<List<VideoAudioTrack>> getAudioTracks(int textureId) async {
+    calls.add('getAudioTracks');
+    return <VideoAudioTrack>[
+      const VideoAudioTrack(
+        id: 'track_1',
+        label: 'English',
+        language: 'en',
+        isSelected: true,
+      ),
+      const VideoAudioTrack(
+        id: 'track_2',
+        label: 'Spanish',
+        language: 'es',
+        isSelected: false,
+        bitrate: 128000,
+        sampleRate: 44100,
+        channelCount: 2,
+        codec: 'aac',
+      ),
+      const VideoAudioTrack(
+        id: 'track_3',
+        label: 'French',
+        language: 'fr',
+        isSelected: false,
+        bitrate: 96000,
+      ),
+    ];
+  }
+
+  @override
+  Future<void> selectAudioTrack(int textureId, String trackId) async {
+    calls.add('selectAudioTrack');
+    selectedAudioTrackIds[textureId] = trackId;
+  }
+
+  @override
+  bool isAudioTrackSupportAvailable() {
+    calls.add('isAudioTrackSupportAvailable');
+    return true; // Return true for testing purposes
+  }
+
+  @override
+  Future<List<VideoTrack>> getVideoTracks(int textureId) async {
+    calls.add('getVideoTracks');
+    return <VideoTrack>[
+      const VideoTrack(
+        id: '0_0',
+        isSelected: true,
+        label: '1080p',
+        bitrate: 8000000,
+        width: 1920,
+        height: 1080,
+      ),
+      const VideoTrack(
+        id: '0_1',
+        isSelected: false,
+        label: '720p',
+        bitrate: 4000000,
+        width: 1280,
+        height: 720,
+      ),
+    ];
+  }
+
+  @override
+  Future<void> selectVideoTrack(int textureId, VideoTrack? track) async {
+    calls.add('selectVideoTrack');
+    selectedVideoTracks[textureId] = track;
+  }
+
+  @override
+  bool isVideoTrackSupportAvailable() {
+    calls.add('isVideoTrackSupportAvailable');
+    return true; // Return true for testing purposes
   }
 }
 

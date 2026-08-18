@@ -1,3 +1,19 @@
+## 1.2.0
+- Adds audio track selection, matching upstream `video_player` 2.11.0:
+  `getAudioTracks()`, `selectAudioTrack()` and `isAudioTrackSupportAvailable()`
+  on `VideoPlayerHdrController`, plus the `VideoAudioTrack` type re-exported
+  from the platform interface.
+- Adds video track (quality variant) selection — not yet exposed by upstream's
+  app-facing package: `getVideoTracks()`, `selectVideoTrack()` and
+  `isVideoTrackSupportAvailable()`, plus the `VideoTrack` type. For HLS/DASH
+  this allows picking specific variants, including HDR ones.
+- `VideoPlayerOptions.backBufferDurationMs` is now passed through to the
+  platform implementations, matching upstream `video_player` 2.12.0.
+- Honors `VideoPlayerOptions.preventsDisplaySleepDuringVideoPlayback`: adds the
+  field to `VideoPlayerHdrValue` and `setPreventsDisplaySleepDuringVideoPlayback()`
+  to the controller, to control whether the display sleeps during playback on
+  iOS and macOS, matching upstream `video_player` 2.13.0.
+
 ## 1.1.0
 - Syncs bug fixes from upstream `video_player` 2.10.1 and 2.11.1:
   - Fixes `VideoPlayerHdr` and `VideoProgressIndicator` no longer updating after
