@@ -1,3 +1,12 @@
+## 2.1.0
+- Adds Swift Package Manager support for iOS (CocoaPods remains supported;
+  Flutter picks the right one based on the consuming app's configuration).
+  Thanks to @bbbshah for the original contribution (#5).
+- Raises the declared minimum iOS version from 12.0 to 13.0, the floor already
+  imposed by Flutter 3.44 and `video_player_avfoundation` 2.11.
+- Android: `getSupportedHdrFormats()` returns an empty list instead of an
+  internal error on devices where `Display.getHdrCapabilities()` returns null.
+
 ## 2.0.0
 Aligns the public API with upstream `video_player` 2.10+. **Breaking changes:**
 

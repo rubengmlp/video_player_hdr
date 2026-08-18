@@ -2,7 +2,7 @@ name: video_player_hdr
 description: A fork of video_player with HDR support
 repository: https://github.com/rubengmlp/video_player_hdr
 issue_tracker: https://github.com/rubengmlp/video_player_hdr/issues
-version: 2.0.0
+version: 2.1.0
 
 environment:
   sdk: ^3.12.0
