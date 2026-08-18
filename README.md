@@ -25,6 +25,8 @@ A fork of the official Flutter `video_player` plugin with **HDR (High Dynamic Ra
 - macOS (fallbacks to `video_player_avfoundation`)
 - Web (fallbacks to `video_player_web`)
 
+> The iOS plugin supports both **CocoaPods** and **Swift Package Manager**. No extra configuration is required — Flutter picks the appropriate one based on your app's settings.
+
 ## Installation
 
 Add the following to your `pubspec.yaml`:

@@ -3,7 +3,7 @@ PODS:
   - video_player_avfoundation (0.0.1):
     - Flutter
     - FlutterMacOS
-  - video_player_hdr (1.0.1):
+  - video_player_hdr (2.1.0):
     - Flutter
 
 DEPENDENCIES:
@@ -22,7 +22,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   video_player_avfoundation: 3453f792138786248960ca029747fcd9f318ef52
-  video_player_hdr: 6dc73c3240b7fc320f03f1b85973610432dbd7b1
+  video_player_hdr: f0d1cfd81f22efbab77074a05ce3c71be83f767f
 
 PODFILE CHECKSUM: 4f1c12611da7338d21589c0b2ecd6bd20b109694
 
