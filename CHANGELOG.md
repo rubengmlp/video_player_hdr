@@ -1,3 +1,21 @@
+## 2.2.0
+- iOS: `isHdrSupported()` and `getSupportedHdrFormats()` now ask AVFoundation
+  (`AVPlayer.eligibleForHDRPlayback` / `AVPlayer.availableHDRModes`) instead of
+  guessing from a table of iPhone models. iPads and future devices are now
+  reported correctly, and P3-only devices without HDR no longer report HDR.
+- `getVideoMetadata()` returns the same values on both platforms:
+  - iOS: `colorStandard`, `colorTransfer` and `colorRange` now use the Android
+    names (`BT2020`, `HLG`, `ST2084`, `FULL`, ...) instead of Apple's
+    (`ITU_R_2020`, ...). `colorRange` previously returned the YCbCr matrix.
+  - iOS: `rotation` is now reported in 0...359 (was -180...180).
+  - Android: unknown color values are `null` instead of the string `"null"`.
+  - Android: `frameRate` is now the average frame rate of the video; it was
+    almost always `null` because it read the slow-motion capture rate.
+- iOS: a missing asset in `getVideoMetadata()` no longer replies twice to the
+  method channel.
+- Android: `getVideoMetadata()` reads uncompressed assets in place instead of
+  copying them to a temporary file, and always releases the metadata retriever.
+
 ## 2.1.0
 - Adds Swift Package Manager support for iOS (CocoaPods remains supported;
   Flutter picks the right one based on the consuming app's configuration).
