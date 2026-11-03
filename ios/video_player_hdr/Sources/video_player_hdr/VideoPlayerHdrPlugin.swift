@@ -42,64 +42,41 @@ public class VideoPlayerHdrPlugin: NSObject, FlutterPlugin {
     }
     
     private func isHdrSupported(result: @escaping FlutterResult) {
-        // In iOS, HDR is supported if the device supports Wide Color Gamut
-        return isWideColorGamutSupported(result: result)
+        if #available(iOS 13.4, *) {
+            result(AVPlayer.eligibleForHDRPlayback)
+        } else {
+            result(!AVPlayer.availableHDRModes.isEmpty)
+        }
     }
-    
-    private func getSupportedHdrFormats(result: @escaping FlutterResult) {
-        if #available(iOS 10.0, *) {
-            let screen = UIScreen.main
-            var formats: [String] = []
-            
-            // P3 color space is a requirement for any HDR support
-            if screen.traitCollection.displayGamut == .P3 {
-                // All devices with P3 support HDR10
-                formats.append("hdr10")
-                
-                // Detect the model to determine Dolby Vision support
-                let deviceModel = UIDevice.current.modelName
-                
-                // Devices with OLED screens support Dolby Vision
-                if deviceModel.contains("iPhone X") && !deviceModel.contains("iPhone XR") ||
-                   deviceModel.contains("iPhone 11 Pro") ||
-                   deviceModel.contains("iPhone 12") ||
-                   deviceModel.contains("iPhone 13") ||
-                   deviceModel.contains("iPhone 14") ||
-                   deviceModel.contains("iPhone 15") ||
-                   deviceModel.contains("iPhone 16") ||
-                   deviceModel.contains("iPhone 17") ||
-                   deviceModel.contains("iPhone Air") {
-                    formats.append("dolby_vision")
-                }
 
-                // HLG is supported on most recent devices with HDR capability
-                if deviceModel.contains("iPhone 11") ||
-                   deviceModel.contains("iPhone 12") ||
-                   deviceModel.contains("iPhone 13") ||
-                   deviceModel.contains("iPhone 14") ||
-                   deviceModel.contains("iPhone 15") ||
-                   deviceModel.contains("iPhone 16") ||
-                   deviceModel.contains("iPhone 17") ||
-                   deviceModel.contains("iPhone Air") {
-                    formats.append("hlg")
-                }
-            }
-            
-            result(formats)
-        } else {
-            result([])
-        }
+    private func getSupportedHdrFormats(result: @escaping FlutterResult) {
+        let modes = AVPlayer.availableHDRModes
+        var formats: [String] = []
+        if modes.contains(.hdr10) { formats.append("hdr10") }
+        if modes.contains(.dolbyVision) { formats.append("dolby_vision") }
+        if modes.contains(.hlg) { formats.append("hlg") }
+        result(formats)
     }
-    
+
     private func isWideColorGamutSupported(result: @escaping FlutterResult) {
-        if #available(iOS 10.0, *) {
-            let screen = UIScreen.main
-            // Check if the display supports Wide Color (P3 color space)
-            result(screen.traitCollection.displayGamut == .P3)
-        } else {
-            result(false)
-        }
+        result(UIScreen.main.traitCollection.displayGamut == .P3)
     }
+
+    // Values use the same names as the Android plugin so metadata matches across platforms.
+    private static let colorStandards: [String: String] = [
+        kCMFormatDescriptionColorPrimaries_ITU_R_2020 as String: "BT2020",
+        kCMFormatDescriptionColorPrimaries_ITU_R_709_2 as String: "BT709",
+        kCMFormatDescriptionColorPrimaries_SMPTE_C as String: "BT601_NTSC",
+        kCMFormatDescriptionColorPrimaries_EBU_3213 as String: "BT601_PAL",
+    ]
+
+    private static let colorTransfers: [String: String] = [
+        kCMFormatDescriptionTransferFunction_ITU_R_2100_HLG as String: "HLG",
+        kCMFormatDescriptionTransferFunction_SMPTE_ST_2084_PQ as String: "ST2084",
+        kCMFormatDescriptionTransferFunction_ITU_R_709_2 as String: "SDR_VIDEO",
+        kCMFormatDescriptionTransferFunction_ITU_R_2020 as String: "SDR_VIDEO",
+        kCMFormatDescriptionTransferFunction_Linear as String: "LINEAR",
+    ]
     
     @available(iOS 15.0, *)
     private func getVideoMetadata(filePath: String, httpHeaders: [String: String]?, result: @escaping FlutterResult) {
@@ -116,7 +93,6 @@ public class VideoPlayerHdrPlugin: NSObject, FlutterPlugin {
 
          if filePath.hasPrefix("asset://") {
             let assetName = String(filePath.dropFirst(8))
-            print("Looking up asset: \(assetName)")
 
             guard let registrar = VideoPlayerHdrPlugin.registrar else {
         result(FlutterError(code: "NO_REGISTRAR",
@@ -126,15 +102,14 @@ public class VideoPlayerHdrPlugin: NSObject, FlutterPlugin {
     }
             
             let key = registrar.lookupKey(forAsset: assetName)
-            print("Asset key: \(key)")
-            
+
             if let path = Bundle.main.path(forResource: key, ofType: nil) {
                 assetURL = URL(fileURLWithPath: path)
-                print("Asset URL created: \(assetURL?.absoluteString ?? "nil")")
             } else {
                 result(FlutterError(code: "ASSET_NOT_FOUND",
                                     message: "Asset not found: \(assetName)",
                                     details: nil))
+                return
             }
         }  else if filePath.hasPrefix("file://") {
                     assetURL = URL(string: filePath)
@@ -161,12 +136,14 @@ public class VideoPlayerHdrPlugin: NSObject, FlutterPlugin {
     
     Task {
         do {
-            try await _ = asset.load(.duration, .tracks)
-            
+            let duration = try await asset.load(.duration)
+
             guard let videoTrack = try await asset.loadTracks(withMediaType: .video).first else {
-                result(FlutterError(code: "NO_VIDEO_TRACK",
-                                  message: "No video track found in the asset",
-                                  details: nil))
+                DispatchQueue.main.async {
+                    result(FlutterError(code: "NO_VIDEO_TRACK",
+                                      message: "No video track found in the asset",
+                                      details: nil))
+                }
                 return
             }
             
@@ -178,7 +155,7 @@ public class VideoPlayerHdrPlugin: NSObject, FlutterPlugin {
             videoMetadata["height"] = Int(size.height)
             
             // Duration (in milliseconds)
-            let durationSeconds = CMTimeGetSeconds(asset.duration)
+            let durationSeconds = CMTimeGetSeconds(duration)
             videoMetadata["duration"] = Int64(durationSeconds * 1000)
             
             // Framerate
@@ -188,7 +165,8 @@ public class VideoPlayerHdrPlugin: NSObject, FlutterPlugin {
             let transform = videoTrack.preferredTransform
             let angle = atan2(transform.b, transform.a)
             let degrees = angle * 180 / .pi
-            videoMetadata["rotation"] = Int(degrees)
+            // atan2 yields -180...180; report 0...359 like Android
+            videoMetadata["rotation"] = (Int(degrees.rounded()) + 360) % 360
             
             // Bitrate
             videoMetadata["bitrate"] = Int(videoTrack.estimatedDataRate)
@@ -199,11 +177,11 @@ public class VideoPlayerHdrPlugin: NSObject, FlutterPlugin {
                    let format = formatDescriptions.first {
                     let colorPrimaries = CMFormatDescriptionGetExtension(format, extensionKey: kCMFormatDescriptionExtension_ColorPrimaries)
                     let transferFunction = CMFormatDescriptionGetExtension(format, extensionKey: kCMFormatDescriptionExtension_TransferFunction)
-                    let colorMatrix = CMFormatDescriptionGetExtension(format, extensionKey: kCMFormatDescriptionExtension_YCbCrMatrix)
-                    
-                    videoMetadata["colorStandard"] = colorPrimaries as? String
-                    videoMetadata["colorTransfer"] = transferFunction as? String
-                    videoMetadata["colorRange"] = colorMatrix as? String
+                    let fullRange = CMFormatDescriptionGetExtension(format, extensionKey: kCMFormatDescriptionExtension_FullRangeVideo)
+
+                    videoMetadata["colorStandard"] = (colorPrimaries as? String).flatMap { Self.colorStandards[$0] }
+                    videoMetadata["colorTransfer"] = (transferFunction as? String).flatMap { Self.colorTransfers[$0] }
+                    videoMetadata["colorRange"] = (fullRange as? Bool).map { $0 ? "FULL" : "LIMITED" }
                 }
             
             DispatchQueue.main.async {
@@ -218,57 +196,5 @@ public class VideoPlayerHdrPlugin: NSObject, FlutterPlugin {
             }
         }
     }
-    }
-}
-
-extension UIDevice {
-    var modelName: String {
-        var systemInfo = utsname()
-        uname(&systemInfo)
-        let machineMirror = Mirror(reflecting: systemInfo.machine)
-        let identifier = machineMirror.children.reduce("") { identifier, element in
-            guard let value = element.value as? Int8, value != 0 else { return identifier }
-            return identifier + String(UnicodeScalar(UInt8(value)))
-        }
-        
-        // Map device identifiers to commercial names of iPhones
-        switch identifier {
-        case "iPhone10,1", "iPhone10,4": return "iPhone 8"
-        case "iPhone10,2", "iPhone10,5": return "iPhone 8 Plus"
-        case "iPhone10,3", "iPhone10,6": return "iPhone X"
-        case "iPhone11,2": return "iPhone XS"
-        case "iPhone11,4", "iPhone11,6": return "iPhone XS Max"
-        case "iPhone11,8": return "iPhone XR"
-        case "iPhone12,1": return "iPhone 11"
-        case "iPhone12,3": return "iPhone 11 Pro"
-        case "iPhone12,5": return "iPhone 11 Pro Max"
-        case "iPhone13,1": return "iPhone 12 mini"
-        case "iPhone13,2": return "iPhone 12"
-        case "iPhone13,3": return "iPhone 12 Pro"
-        case "iPhone13,4": return "iPhone 12 Pro Max"
-        case "iPhone14,2": return "iPhone 13 Pro"
-        case "iPhone14,3": return "iPhone 13 Pro Max"
-        case "iPhone14,4": return "iPhone 13 mini"
-        case "iPhone14,5": return "iPhone 13"
-        case "iPhone14,7": return "iPhone 14"
-        case "iPhone14,8": return "iPhone 14 Plus"
-        case "iPhone15,2": return "iPhone 14 Pro"
-        case "iPhone15,3": return "iPhone 14 Pro Max"
-        case "iPhone15,4": return "iPhone 15"
-        case "iPhone15,5": return "iPhone 15 Plus"
-        case "iPhone16,1": return "iPhone 15 Pro"
-        case "iPhone16,2": return "iPhone 15 Pro Max"
-        case "iPhone17,1": return "iPhone 16 Pro"
-        case "iPhone17,2": return "iPhone 16 Pro Max"
-        case "iPhone17,3": return "iPhone 16"
-        case "iPhone17,4": return "iPhone 16 Plus"
-        case "iPhone17,5": return "iPhone 16e"
-        case "iPhone18,1": return "iPhone 17 Pro"
-        case "iPhone18,2": return "iPhone 17 Pro Max"
-        case "iPhone18,3": return "iPhone 17"
-        case "iPhone18,4": return "iPhone Air"
-        case "iPhone18,5": return "iPhone 17e"
-        default: return identifier
-        }
     }
 }

@@ -12,6 +12,7 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import java.io.File
+import java.io.FileNotFoundException
 import java.io.FileOutputStream
 
 /** VideoPlayerHdrPlugin */
@@ -144,28 +145,31 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
             return
         }
 
+        val metadataRetriever = MediaMetadataRetriever()
         try {
-            val metadataRetriever = MediaMetadataRetriever()
-
             when {
                 filePath.startsWith("asset://") -> {
                     val assetPath = filePath.substring(8)
                     val resolvedPath = flutterAssets.getAssetFilePathByName(assetPath)
 
-                    val assetManager = context.assets
-                    val inputStream = assetManager.open(resolvedPath)
-
-                    val videoFormat = assetPath.substringAfterLast('.', "")
-                    val tempFile = File.createTempFile("temp_video", ".$videoFormat", context.cacheDir)
-                    val outputStream = FileOutputStream(tempFile)
-                    inputStream.copyTo(outputStream)
-                    outputStream.close()
-                    inputStream.close()
-
-                    metadataRetriever.setDataSource(
-                        tempFile.absolutePath
-                    )
-                    tempFile.delete()
+                    try {
+                        // Uncompressed assets (e.g. .mp4) can be read in place from the APK
+                        context.assets.openFd(resolvedPath).use { fd ->
+                            metadataRetriever.setDataSource(fd.fileDescriptor, fd.startOffset, fd.length)
+                        }
+                    } catch (e: FileNotFoundException) {
+                        // Compressed in the APK (e.g. .mov): copy it out first
+                        val videoFormat = assetPath.substringAfterLast('.', "")
+                        val tempFile = File.createTempFile("temp_video", ".$videoFormat", context.cacheDir)
+                        try {
+                            context.assets.open(resolvedPath).use { input ->
+                                FileOutputStream(tempFile).use { output -> input.copyTo(output) }
+                            }
+                            metadataRetriever.setDataSource(tempFile.absolutePath)
+                        } finally {
+                            tempFile.delete()
+                        }
+                    }
                 }
 
                 filePath.startsWith("file://") -> metadataRetriever.setDataSource(
@@ -206,12 +210,21 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
                 metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
                     ?.toIntOrNull() ?: 0
 
-            // Framerate
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                videoMetadata["frameRate"] =
+            // Framerate: average from frame count, since CAPTURE_FRAMERATE is only set for slow-motion captures
+            val frameCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_FRAME_COUNT)
+                    ?.toIntOrNull()
+            } else {
+                null
+            }
+            val durationMs = videoMetadata["duration"] as Long?
+            videoMetadata["frameRate"] =
+                if (frameCount != null && durationMs != null && durationMs > 0) {
+                    frameCount * 1000f / durationMs
+                } else {
                     metadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CAPTURE_FRAMERATE)
                         ?.toFloatOrNull()
-            }
+                }
 
             // HDR information
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -227,7 +240,7 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
                     "4" -> "BT601_NTSC"
                     "2" -> "BT601_PAL"
                     "1" -> "BT709"
-                    else -> "null"
+                    else -> null
                 }
 
                 videoMetadata["colorTransfer"] = when (colorTransfer) {
@@ -235,19 +248,17 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
                     "6" -> "ST2084"
                     "3" -> "SDR_VIDEO"
                     "1" -> "LINEAR"
-                    else -> "null"
+                    else -> null
                 }
 
                 videoMetadata["colorRange"] = when (colorRange) {
                     "2" -> "LIMITED"
                     "1" -> "FULL"
-                    else -> "null"
+                    else -> null
                 }
             }
 
             result.success(videoMetadata)
-
-            metadataRetriever.release()
         } catch (e: Exception) {
             // Check if the exception might be related to streaming formats that weren't detected by extension
             if (filePath.startsWith("http")) {
@@ -259,6 +270,9 @@ class VideoPlayerHdrPlugin : FlutterPlugin, MethodCallHandler {
             } else {
                 result.error("METADATA_ERROR", "Error extracting metadata: ${e.message}", null)
             }
+        } finally {
+            // release() can throw IOException on API 29+; the result has already been sent
+            runCatching { metadataRetriever.release() }
         }
     }
 }
